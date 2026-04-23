@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('编辑员工')"/>
+    <th:block th:include="include :: datetimepicker-css"/>
+</head>
+<body>
+<div class="main-content">
+    <form id="form-employee-edit" class="form-horizontal" th:object="${employee}">
+        <input name="hrEmployeeId" type="hidden" th:field="*{hrEmployeeId}"/>
+        <h4 class="form-header h4">基础信息</h4>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">关联用户ID：</label>
+                    <div class="col-sm-8">
+                        <input name="userId" class="form-control" type="number" th:field="*{userId}" required>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">归属部门：</label>
+                    <div class="col-sm-8">
+                        <div class="input-group">
+                            <input id="treeName" name="deptName" type="text" class="form-control" onclick="selectDeptTree()" th:value="*{deptName}" readonly required>
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        </div>
+                        <input id="treeId" name="deptId" type="hidden" th:field="*{deptId}" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">工号：</label>
+                    <div class="col-sm-8">
+                        <input name="employeeNo" class="form-control" maxlength="64" th:field="*{employeeNo}" required>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">工种：</label>
+                    <div class="col-sm-8">
+                        <input name="jobType" class="form-control" maxlength="64" th:field="*{jobType}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">入职日期：</label>
+                    <div class="col-sm-8">
+                        <input type="text" name="joinDate" class="form-control time-input" th:value="${#dates.format(employee.joinDate, 'yyyy-MM-dd')}" placeholder="yyyy-MM-dd">
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">设备工号：</label>
+                    <div class="col-sm-8">
+                        <input name="deviceUserNo" class="form-control" maxlength="64" th:field="*{deviceUserNo}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">默认班组：</label>
+                    <div class="col-sm-8">
+                        <input name="defaultShiftGroup" class="form-control" maxlength="64" th:field="*{defaultShiftGroup}">
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">参与考勤：</label>
+                    <div class="col-sm-8">
+                        <label class="toggle-switch switch-solid">
+                            <input type="checkbox" id="attendEnabled" th:checked="${employee.attendEnabled == '1'}">
+                            <span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">在职状态：</label>
+                    <div class="col-sm-8">
+                        <label class="toggle-switch switch-solid">
+                            <input type="checkbox" id="workStatus" th:checked="${employee.workStatus == '0'}">
+                            <span></span>
+                        </label>
+                        <span class="help-block m-b-none"><i class="fa fa-info-circle"></i> 打开=在职，关闭=离职</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="form-header h4">备注信息</h4>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-xs-2 control-label">备注：</label>
+                    <div class="col-xs-10">
+                        <textarea name="remark" maxlength="500" class="form-control" rows="3">[[*{remark}]]</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="row">
+    <div class="col-sm-offset-5 col-sm-10">
+        <button type="button" class="btn btn-sm btn-primary" onclick="submitHandler()"><i class="fa fa-check"></i> 保存</button>&nbsp;
+        <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-reply-all"></i> 关闭</button>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: datetimepicker-js"/>
+<script>
+    var prefix = ctx + "hr/employee";
+
+    $(function () {
+        $("input[name='joinDate']").datetimepicker({
+            format: "yyyy-mm-dd",
+            minView: "month",
+            autoclose: true
+        });
+
+        $("#form-employee-edit").validate({
+            onkeyup: false,
+            focusCleanup: true
+        });
+    });
+
+    function selectDeptTree() {
+        var deptId = $.common.isEmpty($("#treeId").val()) ? "100" : $("#treeId").val();
+        var url = ctx + "system/user/selectDeptTree/" + deptId;
+        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
+        var options = {
+            title: '选择部门',
+            width: "380",
+            url: url,
+            btn: btn,
+            btn2: function (index) {
+                $("#treeId").val("");
+                $("#treeName").val("");
+                $.modal.close(index);
+            },
+            callBack: doSelectDept
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doSelectDept(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#treeId").val(body.find('#treeId').val());
+        $("#treeName").val(body.find('#treeName').val());
+        $.modal.close(index);
+    }
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            var data = $("#form-employee-edit").serializeArray();
+            data.push({name: "attendEnabled", value: $("#attendEnabled").is(':checked') ? "1" : "0"});
+            data.push({name: "workStatus", value: $("#workStatus").is(':checked') ? "0" : "1"});
+            $.operate.saveTab(prefix + "/edit", data);
+        }
+    }
+</script>
+</body>
+</html>

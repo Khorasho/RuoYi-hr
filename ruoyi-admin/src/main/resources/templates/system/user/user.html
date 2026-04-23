@@ -35,7 +35,7 @@
 						<div class="select-list">
 							<ul>
 								<li>
-									登录名称：<input type="text" name="loginName"/>
+									工号：<input type="text" name="loginName"/>
 								</li>
 								<li>
 									手机号码：<input type="text" name="phonenumber"/>
@@ -93,6 +93,9 @@
 		var editFlag = [[${@permission.hasPermi('system:user:edit')}]];
 		var removeFlag = [[${@permission.hasPermi('system:user:remove')}]];
 		var resetPwdFlag = [[${@permission.hasPermi('system:user:resetPwd')}]];
+
+		var sexData = [[${@dict.getType('sys_user_sex')}]];
+
 		var prefix = ctx + "system/user";
 
 		$(function() {
@@ -135,7 +138,7 @@
 		        },
 		        {
 		            field: 'loginName',
-		            title: '登录名称',
+		            title: '工号',
 		            sortable: true,
 		            formatter: function (value, row, index) {
 		                return '<a href="javascript:void(0)" onclick="$.operate.view(\'' + row.userId + '\')">' + value + '</a>';
@@ -143,12 +146,19 @@
 		        },
 		        {
 		            field: 'userName',
-		            title: '用户名称'
+		            title: '姓名'
 		        },
 		        {
 		            field: 'dept.deptName',
 		            title: '部门'
 		        },
+					{
+						field: 'sex',
+						title: '性别',
+						formatter: function(value, row, index) {
+							return $.table.selectDictLabel(sexData, value);
+						}
+					},
 		        {
 		            field: 'email',
 		            title: '邮箱',

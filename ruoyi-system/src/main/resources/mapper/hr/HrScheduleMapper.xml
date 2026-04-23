@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrScheduleMapper">
+    <resultMap type="HrSchedule" id="HrScheduleResult">
+        <id property="scheduleId" column="schedule_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="workDate" column="work_date"/>
+        <result property="shiftId" column="shift_id"/>
+        <result property="shiftName" column="shift_name"/>
+        <result property="restType" column="rest_type"/>
+        <result property="scheduleRemark" column="schedule_remark"/>
+    </resultMap>
+
+    <select id="selectHrScheduleList" parameterType="HrSchedule" resultMap="HrScheduleResult">
+        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
+        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
+        from hr_schedule s
+        left join sys_user u on u.user_id = s.user_id
+        left join sys_dept d on d.dept_id = s.dept_id
+        left join hr_shift sh on sh.shift_id = s.shift_id
+        <where>
+            1=1
+            <if test="userId != null">and s.user_id = #{userId}</if>
+            <if test="deptId != null">and s.dept_id = #{deptId}</if>
+            <if test="workDate != null">and s.work_date = #{workDate}</if>
+            <if test="params.beginTime != null and params.beginTime != ''">and s.work_date &gt;= #{params.beginTime}</if>
+            <if test="params.endTime != null and params.endTime != ''">and s.work_date &lt;= #{params.endTime}</if>
+        </where>
+        order by s.work_date desc, s.user_id asc
+    </select>
+
+    <select id="selectHrScheduleById" parameterType="Long" resultMap="HrScheduleResult">
+        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
+        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
+        from hr_schedule s
+        left join sys_user u on u.user_id = s.user_id
+        left join sys_dept d on d.dept_id = s.dept_id
+        left join hr_shift sh on sh.shift_id = s.shift_id
+        where s.schedule_id = #{scheduleId}
+    </select>
+
+    <insert id="insertHrSchedule" parameterType="HrSchedule" useGeneratedKeys="true" keyProperty="scheduleId">
+        insert into hr_schedule(user_id, dept_id, work_date, shift_id, rest_type, schedule_remark, create_by, create_time)
+        values(#{userId}, #{deptId}, #{workDate}, #{shiftId}, #{restType}, #{scheduleRemark}, #{createBy}, sysdate())
+    </insert>
+
+    <update id="updateHrSchedule" parameterType="HrSchedule">
+        update hr_schedule
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="workDate != null">work_date = #{workDate},</if>
+            <if test="shiftId != null">shift_id = #{shiftId},</if>
+            <if test="restType != null">rest_type = #{restType},</if>
+            <if test="scheduleRemark != null">schedule_remark = #{scheduleRemark},</if>
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </set>
+        where schedule_id = #{scheduleId}
+    </update>
+
+    <delete id="deleteHrScheduleByIds" parameterType="Long">
+        delete from hr_schedule where schedule_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <delete id="deleteByUserAndDate">
+        delete from hr_schedule where user_id = #{arg0} and work_date = #{arg1}
+    </delete>
+
+    <select id="selectByDate" resultMap="HrScheduleResult" parameterType="java.time.LocalDate">
+        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
+        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
+        from hr_schedule s
+        left join sys_user u on u.user_id = s.user_id
+        left join sys_dept d on d.dept_id = s.dept_id
+        left join hr_shift sh on sh.shift_id = s.shift_id
+        where s.work_date = #{workDate}
+    </select>
+</mapper>

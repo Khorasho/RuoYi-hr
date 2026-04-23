@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('考勤处理')"/>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="attendance-form">
+                <div class="select-list">
+                    <ul>
+                        <li>员工ID：<input type="text" name="userId"/></li>
+                        <li>月份：<input type="month" id="month" name="params[month]" class="form-control" style="width: 180px; display: inline-block;"/></li>
+                        <li class="select-time">
+                            <label>日期范围：</label>
+                            <input type="text" class="time-input" id="beginDate" placeholder="开始日期" name="params[beginDate]"/>
+                            <span>-</span>
+                            <input type="text" class="time-input" id="endDate" placeholder="结束日期" name="params[endDate]"/>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+
+        <div class="btn-group-sm" id="toolbar" role="group">
+            <a class="btn btn-info" href="javascript:void(0)" onclick="recalculateDay()" shiro:hasPermission="hr:attendance:recalc"><i class="fa fa-refresh"></i> 日重算</a>
+            <a class="btn btn-primary" href="javascript:void(0)" onclick="recalculateMonth()" shiro:hasPermission="hr:attendance:recalc"><i class="fa fa-calendar"></i> 月重算</a>
+            <a class="btn btn-success" href="javascript:void(0)" onclick="loadSummary()" shiro:hasPermission="hr:report:view"><i class="fa fa-bar-chart"></i> 月报汇总</a>
+            <a class="btn btn-warning" onclick="$.table.exportExcel()" shiro:hasPermission="hr:attendance:export"><i class="fa fa-download"></i> 导出</a>
+            <a class="btn btn-default" href="javascript:void(0)" onclick="openRule()" shiro:hasPermission="hr:attendance:edit"><i class="fa fa-cog"></i> 规则配置</a>
+        </div>
+
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+
+        <div class="col-sm-12" id="summaryPanel" style="display:none; margin-top: 15px;">
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>部门月汇总</strong></div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="deptSummaryTable">
+                            <thead><tr><th>部门</th><th>出勤天数</th><th>迟到</th><th>早退</th><th>缺卡</th><th>旷工</th><th>实出勤分钟</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>个人月汇总</strong></div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="userSummaryTable">
+                            <thead><tr><th>姓名</th><th>部门</th><th>出勤天数</th><th>迟到</th><th>早退</th><th>缺卡</th><th>旷工</th><th>实出勤分钟</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<script th:inline="javascript">
+    var prefix = ctx + "hr/attendance";
+
+    $(function () {
+        var options = {
+            url: prefix + "/list",
+            exportUrl: prefix + "/export",
+            modalName: "考勤",
+            sortName: "workDate",
+            sortOrder: "desc",
+            columns: [
+                {field: 'workDate', title: '日期', sortable: true},
+                {field: 'userId', title: '员工ID'},
+                {field: 'userName', title: '姓名'},
+                {field: 'deptName', title: '部门'},
+                {field: 'shiftName', title: '班次'},
+                {field: 'actualInTime', title: '实上班'},
+                {field: 'actualOutTime', title: '实下班'},
+                {field: 'lateFlag', title: '迟到', formatter: function (v) { return v === '1' ? '是' : '否'; }},
+                {field: 'earlyFlag', title: '早退', formatter: function (v) { return v === '1' ? '是' : '否'; }},
+                {field: 'missCardFlag', title: '缺卡', formatter: function (v) { return v === '1' ? '是' : '否'; }},
+                {field: 'absentFlag', title: '旷工', formatter: function (v) { return v === '1' ? '是' : '否'; }},
+                {field: 'actualMinutes', title: '实出勤分钟'}
+            ]
+        };
+        $.table.init(options);
+    });
+
+    function recalculateDay() {
+        var d = prompt("请输入重算日期(yyyy-MM-dd)");
+        if (!d) return;
+        $.operate.post(prefix + "/recalculateDay", {workDate: d});
+    }
+
+    function recalculateMonth() {
+        var m = $("#month").val();
+        if (!m) { $.modal.alertWarning("请先选择月份"); return; }
+        $.operate.post(prefix + "/recalculateMonth", {month: m});
+    }
+
+    function loadSummary() {
+        var m = $("#month").val();
+        if (!m) { $.modal.alertWarning("请先选择月份"); return; }
+        $.get(prefix + "/monthSummary", {month: m}, function (res) {
+            if (res.code !== 0) { $.modal.alertError(res.msg || "加载失败"); return; }
+            renderSummary('#deptSummaryTable tbody', res.deptSummary, ['dept_name', 'totaldays', 'latecount', 'earlycount', 'misscardcount', 'absentcount', 'actualminutes']);
+            renderSummary('#userSummaryTable tbody', res.userSummary, ['user_name', 'dept_name', 'totaldays', 'latecount', 'earlycount', 'misscardcount', 'absentcount', 'actualminutes']);
+            $("#summaryPanel").show();
+        });
+    }
+
+    function renderSummary(tbodySelector, rows, fields) {
+        var $tb = $(tbodySelector);
+        $tb.empty();
+        if (!rows || rows.length === 0) {
+            $tb.append('<tr><td colspan="20" class="text-center">暂无数据</td></tr>');
+            return;
+        }
+        $.each(rows, function (idx, row) {
+            var tr = '<tr>';
+            $.each(fields, function (i, f) { tr += '<td>' + pickValue(row, f) + '</td>'; });
+            tr += '</tr>';
+            $tb.append(tr);
+        });
+    }
+
+    function pickValue(row, snakeName) {
+        if (row[snakeName] != null) return row[snakeName];
+        var camel = snakeName.replace(/_([a-z])/g, function (_, c) { return c.toUpperCase(); });
+        if (row[camel] != null) return row[camel];
+        return '';
+    }
+
+    function openRule() {
+        $.modal.openTab("规则配置", ctx + "hr/rule");
+    }
+</script>
+</body>
+</html>

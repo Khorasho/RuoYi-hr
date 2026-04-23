@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('编辑排班')"/>
+    <th:block th:include="include :: datetimepicker-css"/>
+</head>
+<body>
+<div class="main-content">
+    <form id="form-schedule-edit" class="form-horizontal" th:object="${schedule}">
+        <input name="scheduleId" type="hidden" th:field="*{scheduleId}">
+        <h4 class="form-header h4">排班信息</h4>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">员工ID：</label>
+                    <div class="col-sm-8">
+                        <input name="userId" type="number" class="form-control" th:field="*{userId}" required>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">部门ID：</label>
+                    <div class="col-sm-8">
+                        <input name="deptId" type="number" class="form-control" th:field="*{deptId}" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">排班日期：</label>
+                    <div class="col-sm-8">
+                        <input name="workDate" type="text" class="form-control time-input" th:value="${#dates.format(schedule.workDate, 'yyyy-MM-dd')}" placeholder="yyyy-MM-dd" required>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">班次：</label>
+                    <div class="col-sm-8">
+                        <select name="shiftId" class="form-control m-b">
+                            <option value="">请选择班次</option>
+                            <option th:each="shift:${shifts}" th:value="${shift.shiftId}" th:selected="${schedule.shiftId == shift.shiftId}" th:text="${shift.shiftName + ' (' + shift.shiftCode + ')'}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">休息类型：</label>
+                    <div class="col-sm-8">
+                        <select name="restType" class="form-control m-b" th:field="*{restType}">
+                            <option value="">正常出勤</option>
+                            <option value="REST">休息</option>
+                            <option value="HALF_REST">半天休</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="form-header h4">备注</h4>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-xs-2 control-label">备注：</label>
+                    <div class="col-xs-10">
+                        <textarea name="scheduleRemark" maxlength="500" class="form-control" rows="3">[[*{scheduleRemark}]]</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="row">
+    <div class="col-sm-offset-5 col-sm-10">
+        <button type="button" class="btn btn-sm btn-primary" onclick="submitHandler()"><i class="fa fa-check"></i> 保存</button>&nbsp;
+        <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-reply-all"></i> 关闭</button>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: datetimepicker-js"/>
+<script>
+    var prefix = ctx + "hr/schedule";
+
+    $(function () {
+        $("input[name='workDate']").datetimepicker({
+            format: "yyyy-mm-dd",
+            minView: "month",
+            autoclose: true
+        });
+
+        $("#form-schedule-edit").validate({
+            onkeyup: false,
+            focusCleanup: true
+        });
+    });
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            $.operate.saveTab(prefix + "/edit", $("#form-schedule-edit").serialize());
+        }
+    }
+</script>
+</body>
+</html>

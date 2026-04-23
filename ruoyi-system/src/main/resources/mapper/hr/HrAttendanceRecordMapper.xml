@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrAttendanceRecordMapper">
+    <resultMap type="HrAttendanceRecord" id="HrAttendanceRecordResult">
+        <id property="recordId" column="record_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="deviceUserNo" column="device_user_no"/>
+        <result property="punchTime" column="punch_time"/>
+        <result property="sourceType" column="source_type"/>
+    </resultMap>
+
+    <insert id="insertHrAttendanceRecord" parameterType="HrAttendanceRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into hr_attendance_record(user_id, device_user_no, punch_time, source_type, create_by, create_time)
+        values(#{userId}, #{deviceUserNo}, #{punchTime}, #{sourceType}, #{createBy}, sysdate())
+    </insert>
+
+    <select id="selectByUserAndRange" resultMap="HrAttendanceRecordResult">
+        select * from hr_attendance_record
+        where user_id = #{arg0}
+        and punch_time &gt;= #{arg1}
+        and punch_time &lt;= #{arg2}
+        order by punch_time asc
+    </select>
+</mapper>

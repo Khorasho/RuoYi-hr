@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('新增班次')"/>
+    <th:block th:include="include :: datetimepicker-css"/>
+</head>
+<body>
+<div class="main-content">
+    <form id="form-shift-add" class="form-horizontal">
+        <h4 class="form-header h4">基础信息</h4>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">班次名称：</label>
+                    <div class="col-sm-8">
+                        <input id="shiftName" name="shiftName" class="form-control" placeholder="请输入班次名称" required>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">班次编码：</label>
+                    <div class="col-sm-8">
+                        <input id="shiftCode" name="shiftCode" class="form-control" readonly required>
+                        <span class="help-block m-b-none"><i class="fa fa-info-circle"></i> 根据班次名称自动生成</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">岗位选择：</label>
+                    <div class="col-sm-8">
+                        <div class="input-group">
+                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()" placeholder="请选择岗位" readonly required>
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        </div>
+                        <input id="postType" name="postType" type="hidden"/>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">状态：</label>
+                    <div class="col-sm-8">
+                        <label class="toggle-switch switch-solid">
+                            <input type="checkbox" id="status" checked>
+                            <span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <h4 class="form-header h4">班次时段</h4>
+        <div class="row">
+            <div class="col-sm-12">
+                <table class="table table-bordered" id="periodTable">
+                    <thead>
+                    <tr>
+                        <th style="width:80px;">序号</th>
+                        <th>开始时间</th>
+                        <th>结束时间</th>
+                        <th style="width:100px;">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="addPeriodRow()"><i class="fa fa-plus"></i> 增加时段</a>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="row">
+    <div class="col-sm-offset-5 col-sm-10">
+        <button type="button" class="btn btn-sm btn-primary" onclick="submitHandler()"><i class="fa fa-check"></i> 保存</button>&nbsp;
+        <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-reply-all"></i> 关闭</button>
+    </div>
+</div>
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: datetimepicker-js"/>
+<script>
+    var prefix = ctx + "hr/shift";
+    $(function () {
+        addPeriodRow();
+        addPeriodRow();
+        $("#shiftName").on("blur", function () { generateShiftCode(); });
+        $("#form-shift-add").validate({ onkeyup: false, focusCleanup: true, rules: { shiftName: {required: true}, shiftCode: {required: true}, postType: {required: true} } });
+    });
+    function generateShiftCode() {
+        var shiftName = $.common.trim($("#shiftName").val());
+        if ($.common.isEmpty(shiftName)) { return; }
+        $.post(prefix + "/generateCode", {shiftName: shiftName}, function (res) { if (res.code === 0) { $("#shiftCode").val(res.shiftCode); } });
+    }
+    function selectPostTree() {
+        var postId = $("#postType").data("postId") || "0";
+        var url = prefix + "/selectPostTree/" + postId;
+        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
+        var options = { title: '选择岗位', width: "380", url: url, btn: btn, btn2: function (index) { $("#postType").val("").removeData("postId"); $("#postTypeName").val(""); $.modal.close(index); }, callBack: doSelectPost };
+        $.modal.openOptions(options);
+    }
+    function doSelectPost(index) {
+        var body = $.modal.getChildFrame(index);
+        var postId = body.find('#treeId').val();
+        var postName = body.find('#treeName').val();
+        $("#postType").val(postName).data("postId", postId);
+        $("#postTypeName").val(postName);
+        $.modal.close(index);
+    }
+    function addPeriodRow(startTime, endTime) {
+        var index = $("#periodTable tbody tr").length + 1;
+        var tr = '';
+        tr += '<tr><td class="text-center seq">' + index + '</td>';
+        tr += '<td><input type="text" name="periodStart" class="form-control period-time" placeholder="HH:mm" value="' + (startTime || '') + '" required></td>';
+        tr += '<td><input type="text" name="periodEnd" class="form-control period-time" placeholder="HH:mm" value="' + (endTime || '') + '" required></td>';
+        tr += '<td class="text-center"><a href="javascript:void(0)" class="btn btn-danger btn-xs" onclick="removePeriodRow(this)"><i class="fa fa-remove"></i></a></td></tr>';
+        $("#periodTable tbody").append(tr);
+        initTimePicker();
+    }
+    function removePeriodRow(btn) { $(btn).closest("tr").remove(); reindexRows(); }
+    function reindexRows() { $("#periodTable tbody tr").each(function (i) { $(this).find(".seq").text(i + 1); }); }
+    function initTimePicker() { $('.period-time').datetimepicker('remove'); $('.period-time').datetimepicker({ format: 'hh:ii', startView: 1, minView: 0, maxView: 1, autoclose: true, todayBtn: false, minuteStep: 5, language: 'zh-CN' }); }
+    function submitHandler() {
+        if ($.validate.form()) {
+            var status = $("#status").is(':checked') ? 0 : 1;
+            var data = $("#form-shift-add").serializeArray();
+            data.push({name: "status", value: status});
+            data.push({name: "summerExtendEnabled", value: 0});
+            data.push({name: "summerExtendMinutes", value: 30});
+            $.operate.saveTab(prefix + "/add", data);
+        }
+    }
+</script>
+</body>
+</html>

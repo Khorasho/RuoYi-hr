@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrEmployeeMapper">
+
+    <resultMap type="HrEmployee" id="HrEmployeeResult">
+        <id property="hrEmployeeId" column="hr_employee_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="employeeNo" column="employee_no"/>
+        <result property="jobType" column="job_type"/>
+        <result property="attendEnabled" column="attend_enabled"/>
+        <result property="defaultShiftGroup" column="default_shift_group"/>
+        <result property="deviceUserNo" column="device_user_no"/>
+        <result property="joinDate" column="join_date"/>
+        <result property="workStatus" column="work_status"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="userName" column="user_name"/>
+        <result property="deptName" column="dept_name"/>
+    </resultMap>
+
+    <sql id="selectHrEmployeeVo">
+        select e.*, u.user_name, d.dept_name
+        from hr_employee e
+        left join sys_user u on u.user_id = e.user_id
+        left join sys_dept d on d.dept_id = e.dept_id
+    </sql>
+
+    <select id="selectHrEmployeeList" parameterType="HrEmployee" resultMap="HrEmployeeResult">
+        <include refid="selectHrEmployeeVo"/>
+        <where>
+            e.del_flag = '0'
+            <if test="userId != null">and e.user_id = #{userId}</if>
+            <if test="deptId != null">and e.dept_id = #{deptId}</if>
+            <if test="employeeNo != null and employeeNo != ''">and e.employee_no like concat('%',#{employeeNo},'%')</if>
+            <if test="jobType != null and jobType != ''">and e.job_type like concat('%',#{jobType},'%')</if>
+            <if test="workStatus != null and workStatus != ''">and e.work_status = #{workStatus}</if>
+        </where>
+        order by e.hr_employee_id desc
+    </select>
+
+    <select id="selectHrEmployeeById" parameterType="Long" resultMap="HrEmployeeResult">
+        <include refid="selectHrEmployeeVo"/>
+        where e.hr_employee_id = #{hrEmployeeId}
+    </select>
+
+    <insert id="insertHrEmployee" parameterType="HrEmployee" useGeneratedKeys="true" keyProperty="hrEmployeeId">
+        insert into hr_employee(user_id, dept_id, employee_no, job_type, attend_enabled, default_shift_group,
+        device_user_no, join_date, work_status, del_flag, remark, create_by, create_time)
+        values(#{userId}, #{deptId}, #{employeeNo}, #{jobType}, #{attendEnabled}, #{defaultShiftGroup},
+        #{deviceUserNo}, #{joinDate}, #{workStatus}, '0', #{remark}, #{createBy}, sysdate())
+    </insert>
+
+    <update id="updateHrEmployee" parameterType="HrEmployee">
+        update hr_employee
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="employeeNo != null">employee_no = #{employeeNo},</if>
+            <if test="jobType != null">job_type = #{jobType},</if>
+            <if test="attendEnabled != null">attend_enabled = #{attendEnabled},</if>
+            <if test="defaultShiftGroup != null">default_shift_group = #{defaultShiftGroup},</if>
+            <if test="deviceUserNo != null">device_user_no = #{deviceUserNo},</if>
+            <if test="joinDate != null">join_date = #{joinDate},</if>
+            <if test="workStatus != null">work_status = #{workStatus},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </set>
+        where hr_employee_id = #{hrEmployeeId}
+    </update>
+
+    <update id="deleteHrEmployeeByIds" parameterType="Long">
+        update hr_employee set del_flag = '2' where hr_employee_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+</mapper>

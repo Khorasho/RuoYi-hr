@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrShiftMapper">
+    <resultMap type="HrShift" id="HrShiftResult">
+        <id property="shiftId" column="shift_id"/>
+        <result property="shiftCode" column="shift_code"/>
+        <result property="shiftName" column="shift_name"/>
+        <result property="postType" column="post_type"/>
+        <result property="summerExtendEnabled" column="summer_extend_enabled"/>
+        <result property="summerExtendMinutes" column="summer_extend_minutes"/>
+        <result property="expectedStartTime" column="expected_start_time"/>
+        <result property="expectedEndTime" column="expected_end_time"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+    <resultMap type="HrShiftPeriod" id="HrShiftPeriodResult">
+        <id property="periodId" column="period_id"/>
+        <result property="shiftId" column="shift_id"/>
+        <result property="periodNo" column="period_no"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+    </resultMap>
+
+    <select id="selectHrShiftList" parameterType="HrShift" resultMap="HrShiftResult">
+        select * from hr_shift
+        <where>
+            del_flag = '0'
+            <if test="shiftCode != null and shiftCode != ''">and shift_code like concat('%',#{shiftCode},'%')</if>
+            <if test="shiftName != null and shiftName != ''">and shift_name like concat('%',#{shiftName},'%')</if>
+            <if test="postType != null and postType != ''">and post_type like concat('%',#{postType},'%')</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+        </where>
+        order by shift_id desc
+    </select>
+
+    <select id="selectHrShiftById" parameterType="Long" resultMap="HrShiftResult">
+        select * from hr_shift where shift_id = #{shiftId}
+    </select>
+
+    <insert id="insertHrShift" parameterType="HrShift" useGeneratedKeys="true" keyProperty="shiftId">
+        insert into hr_shift(shift_code, shift_name, post_type, summer_extend_enabled, summer_extend_minutes,
+        expected_start_time, expected_end_time, status, del_flag, remark, create_by, create_time)
+        values(#{shiftCode}, #{shiftName}, #{postType}, #{summerExtendEnabled}, #{summerExtendMinutes},
+        #{expectedStartTime}, #{expectedEndTime}, #{status}, '0', #{remark}, #{createBy}, sysdate())
+    </insert>
+
+    <update id="updateHrShift" parameterType="HrShift">
+        update hr_shift
+        <set>
+            <if test="shiftCode != null">shift_code = #{shiftCode},</if>
+            <if test="shiftName != null">shift_name = #{shiftName},</if>
+            <if test="postType != null">post_type = #{postType},</if>
+            <if test="summerExtendEnabled != null">summer_extend_enabled = #{summerExtendEnabled},</if>
+            <if test="summerExtendMinutes != null">summer_extend_minutes = #{summerExtendMinutes},</if>
+            <if test="expectedStartTime != null">expected_start_time = #{expectedStartTime},</if>
+            <if test="expectedEndTime != null">expected_end_time = #{expectedEndTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </set>
+        where shift_id = #{shiftId}
+    </update>
+
+    <update id="deleteHrShiftByIds" parameterType="Long">
+        update hr_shift set del_flag = '2' where shift_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <select id="countByShiftCode" resultType="int">
+        select count(1)
+        from hr_shift
+        where del_flag = '0'
+          and shift_code = #{shiftCode}
+        <if test="excludeShiftId != null">
+            and shift_id != #{excludeShiftId}
+        </if>
+    </select>
+
+    <select id="selectPeriodsByShiftId" parameterType="Long" resultMap="HrShiftPeriodResult">
+        select * from hr_shift_period where shift_id = #{shiftId} order by period_no
+    </select>
+
+    <delete id="deletePeriodsByShiftId" parameterType="Long">
+        delete from hr_shift_period where shift_id = #{shiftId}
+    </delete>
+
+    <insert id="batchInsertPeriods">
+        insert into hr_shift_period(shift_id, period_no, start_time, end_time, create_by, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.shiftId}, #{item.periodNo}, #{item.startTime}, #{item.endTime}, #{item.createBy}, sysdate())
+        </foreach>
+    </insert>
+</mapper>

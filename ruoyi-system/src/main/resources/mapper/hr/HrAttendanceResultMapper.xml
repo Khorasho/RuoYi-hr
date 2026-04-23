@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrAttendanceResultMapper">
+    <resultMap type="HrAttendanceResult" id="HrAttendanceResultResult">
+        <id property="resultId" column="result_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="workDate" column="work_date"/>
+        <result property="shiftName" column="shift_name"/>
+        <result property="expectedInTime" column="expected_in_time"/>
+        <result property="expectedOutTime" column="expected_out_time"/>
+        <result property="actualInTime" column="actual_in_time"/>
+        <result property="actualOutTime" column="actual_out_time"/>
+        <result property="lateFlag" column="late_flag"/>
+        <result property="earlyFlag" column="early_flag"/>
+        <result property="missCardFlag" column="miss_card_flag"/>
+        <result property="absentFlag" column="absent_flag"/>
+        <result property="expectedMinutes" column="expected_minutes"/>
+        <result property="actualMinutes" column="actual_minutes"/>
+    </resultMap>
+
+    <select id="selectHrAttendanceResultList" parameterType="HrAttendanceResult" resultMap="HrAttendanceResultResult">
+        select r.*, u.user_name, d.dept_name, s.shift_name
+        from hr_attendance_result r
+        left join sys_user u on u.user_id = r.user_id
+        left join sys_dept d on d.dept_id = r.dept_id
+        left join hr_shift s on s.shift_id = r.shift_id
+        <where>
+            1=1
+            <if test="userId != null">and r.user_id = #{userId}</if>
+            <if test="params.month != null and params.month != ''">and date_format(r.work_date, '%Y-%m') = #{params.month}</if>
+            <if test="params.beginDate != null and params.beginDate != ''">and r.work_date &gt;= #{params.beginDate}</if>
+            <if test="params.endDate != null and params.endDate != ''">and r.work_date &lt;= #{params.endDate}</if>
+        </where>
+        order by r.work_date desc, r.user_id
+    </select>
+
+    <insert id="insertHrAttendanceResult" parameterType="HrAttendanceResult" useGeneratedKeys="true" keyProperty="resultId">
+        insert into hr_attendance_result(user_id, dept_id, work_date, shift_id, expected_in_time, expected_out_time,
+        actual_in_time, actual_out_time, late_flag, early_flag, miss_card_flag, absent_flag,
+        expected_minutes, actual_minutes, create_by, create_time)
+        values(#{userId}, (select dept_id from hr_schedule where user_id = #{userId} and work_date = #{workDate} limit 1),
+        #{workDate}, (select shift_id from hr_schedule where user_id = #{userId} and work_date = #{workDate} limit 1),
+        #{expectedInTime}, #{expectedOutTime}, #{actualInTime}, #{actualOutTime}, #{lateFlag}, #{earlyFlag}, #{missCardFlag}, #{absentFlag},
+        #{expectedMinutes}, #{actualMinutes}, #{createBy}, sysdate())
+    </insert>
+
+    <delete id="deleteByDate" parameterType="java.time.LocalDate">
+        delete from hr_attendance_result where work_date = #{workDate}
+    </delete>
+
+    <delete id="deleteByMonth" parameterType="String">
+        delete from hr_attendance_result where date_format(work_date, '%Y-%m') = #{monthStr}
+    </delete>
+
+    <insert id="insertHrAttendanceException" parameterType="HrAttendanceException">
+        insert into hr_attendance_exception(user_id, work_date, exception_type, exception_detail, create_by, create_time)
+        values(#{userId}, #{workDate}, #{exceptionType}, #{exceptionDetail}, #{createBy}, sysdate())
+    </insert>
+
+    <delete id="deleteExceptionsByDate" parameterType="java.time.LocalDate">
+        delete from hr_attendance_exception where work_date = #{workDate}
+    </delete>
+
+    <select id="selectMonthDeptSummary" resultType="map">
+        select d.dept_name,
+               count(1) as totalDays,
+               sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
+               sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
+               sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
+               sum(case when r.absent_flag = '1' then 1 else 0 end) as absentCount,
+               sum(r.actual_minutes) as actualMinutes
+        from hr_attendance_result r
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y-%m') = #{arg0}
+        <if test="arg1 != null">and r.dept_id = #{arg1}</if>
+        <if test="arg2 != null">and r.user_id = #{arg2}</if>
+        group by r.dept_id, d.dept_name
+        order by r.dept_id
+    </select>
+
+    <select id="selectMonthUserSummary" resultType="map">
+        select u.user_name,
+               d.dept_name,
+               count(1) as totalDays,
+               sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
+               sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
+               sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
+               sum(case when r.absent_flag = '1' then 1 else 0 end) as absentCount,
+               sum(r.actual_minutes) as actualMinutes
+        from hr_attendance_result r
+        left join sys_user u on u.user_id = r.user_id
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y-%m') = #{arg0}
+        <if test="arg1 != null">and r.dept_id = #{arg1}</if>
+        <if test="arg2 != null">and r.user_id = #{arg2}</if>
+        group by r.user_id, u.user_name, d.dept_name
+        order by r.user_id
+    </select>
+</mapper>
