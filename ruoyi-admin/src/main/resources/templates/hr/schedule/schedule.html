@@ -10,8 +10,33 @@
             <form id="schedule-form">
                 <div class="select-list">
                     <ul>
-                        <li>员工ID：<input type="text" name="userId"/></li>
-                        <li>部门ID：<input type="text" name="deptId"/></li>
+                        <li>
+                            <input type="hidden" id="queryUserId" name="userId"/>
+                            <label>员工：</label>
+                            <div class="input-group" style="width: 200px;">
+                                <input type="text" id="queryUserName" class="form-control" placeholder="请选择员工" onclick="selectQueryUser()" readonly>
+                                <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                            </div>
+                        </li>
+                        <li>
+                            <input type="hidden" id="queryDeptId" name="deptId"/>
+                            <label>部门：</label>
+                            <div class="input-group" style="width: 200px;">
+                                <input type="text" id="queryDeptName" class="form-control" placeholder="请选择部门" onclick="selectQueryDeptTree()" readonly>
+                                <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                            </div>
+                        </li>
+                        <li>
+                            <label>排班月份：</label>
+                            <input type="month" id="scheduleMonth" class="form-control" style="width: 160px; display: inline-block;">
+                        </li>
+                        <li>
+                            <label>覆盖已排：</label>
+                            <label class="toggle-switch switch-solid" style="margin-top: 4px;">
+                                <input type="checkbox" id="overwriteGenerate" checked>
+                                <span></span>
+                            </label>
+                        </li>
                         <li class="select-time">
                             <label>排班日期：</label>
                             <input type="text" class="time-input" id="startDate" placeholder="开始日期" name="params[beginTime]"/>
@@ -20,7 +45,7 @@
                         </li>
                         <li>
                             <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
-                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
                         </li>
                     </ul>
                 </div>
@@ -28,6 +53,9 @@
         </div>
 
         <div class="btn-group-sm" id="toolbar" role="group">
+            <a class="btn btn-info" href="javascript:void(0)" onclick="generateMonthly()" shiro:hasPermission="hr:schedule:add">
+                <i class="fa fa-calendar-plus-o"></i> 生成月排班
+            </a>
             <a class="btn btn-success" onclick="$.operate.addTab()" shiro:hasPermission="hr:schedule:add">
                 <i class="fa fa-plus"></i> 新增
             </a>
@@ -55,6 +83,10 @@
     var prefix = ctx + "hr/schedule";
 
     $(function () {
+        var now = new Date();
+        var m = now.getMonth() + 1;
+        $("#scheduleMonth").val(now.getFullYear() + "-" + (m < 10 ? "0" + m : m));
+
         var options = {
             url: prefix + "/list",
             createUrl: prefix + "/add",
@@ -86,6 +118,94 @@
         };
         $.table.init(options);
     });
+
+    function generateMonthly() {
+        var month = $("#scheduleMonth").val();
+        if ($.common.isEmpty(month)) {
+            $.modal.alertWarning("请先选择排班月份");
+            return;
+        }
+        var data = {
+            month: month,
+            deptId: $("#queryDeptId").val(),
+            userId: $("#queryUserId").val(),
+            overwrite: $("#overwriteGenerate").is(":checked")
+        };
+        $.modal.confirm("确认按当前筛选条件生成 " + month + " 月排班吗？", function () {
+            $.operate.post(prefix + "/generateMonthly", data);
+        });
+    }
+
+    function selectQueryDeptTree() {
+        var deptId = $.common.isEmpty($("#queryDeptId").val()) ? "100" : $("#queryDeptId").val();
+        var url = prefix + "/selectDeptTree/" + deptId;
+        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
+        var options = {
+            title: "选择部门",
+            width: "380",
+            url: url,
+            btn: btn,
+            btn2: function (index) {
+                $("#queryDeptId").val("");
+                $("#queryDeptName").val("");
+                $("#queryUserId").val("");
+                $("#queryUserName").val("");
+                $.modal.close(index);
+            },
+            callBack: doQueryDeptSubmit
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doQueryDeptSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#queryDeptId").val(body.find("#treeId").val());
+        $("#queryDeptName").val(body.find("#treeName").val());
+        $("#queryUserId").val("");
+        $("#queryUserName").val("");
+        $.modal.close(index);
+    }
+
+    function selectQueryUser() {
+        var deptId = $("#queryDeptId").val();
+        var url = prefix + "/selectUser";
+        if (!$.common.isEmpty(deptId)) {
+            url += "?deptId=" + deptId;
+        }
+        var options = {
+            title: "选择员工",
+            width: "1000",
+            url: url,
+            callBack: doQueryUserSubmit
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doQueryUserSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        var userId = body.find("#selectedUserId").val();
+        if ($.common.isEmpty(userId)) {
+            $.modal.alertWarning("请选择员工");
+            return;
+        }
+        $("#queryUserId").val(userId);
+        $("#queryUserName").val(body.find("#selectedUserName").val());
+        $("#queryDeptId").val(body.find("#selectedDeptId").val());
+        $("#queryDeptName").val(body.find("#selectedDeptName").val());
+        $.modal.close(index);
+    }
+
+    function resetQuery() {
+        resetDate();
+        $("#schedule-form")[0].reset();
+        $("#queryUserId").val("");
+        $("#queryDeptId").val("");
+        var now = new Date();
+        var m = now.getMonth() + 1;
+        $("#scheduleMonth").val(now.getFullYear() + "-" + (m < 10 ? "0" + m : m));
+        $("#overwriteGenerate").prop("checked", true);
+        $.table.search();
+    }
 </script>
 </body>
 </html>

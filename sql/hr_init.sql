@@ -230,3 +230,11 @@ INSERT INTO sys_menu VALUES
 
 INSERT INTO sys_role_menu(role_id, menu_id)
 SELECT 1, m.menu_id FROM sys_menu m WHERE m.menu_id BETWEEN 3000 AND 3044;
+
+-- =========================================================
+-- v1.1 班次与排班增强（可重复执行）
+-- =========================================================
+ALTER TABLE hr_shift ADD COLUMN  workday_mask VARCHAR(7) DEFAULT '1111100' COMMENT '每周上班掩码(周一到周日，1上班0休息)';
+ALTER TABLE hr_employee ADD COLUMN default_shift_id BIGINT DEFAULT NULL COMMENT '默认班次ID';
+
+UPDATE hr_shift SET workday_mask = '1111100' WHERE workday_mask IS NULL OR workday_mask = '';

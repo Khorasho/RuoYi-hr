@@ -13,12 +13,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
+import com.ruoyi.common.core.domain.Ztree;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.system.domain.hr.HrSchedule;
 import com.ruoyi.system.domain.hr.HrShift;
+import com.ruoyi.system.service.ISysDeptService;
+import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.system.service.hr.IHrScheduleService;
 import com.ruoyi.system.service.hr.IHrShiftService;
 
@@ -33,6 +38,12 @@ public class HrScheduleController extends BaseController
     
     @Autowired
     private IHrShiftService shiftService;
+    
+    @Autowired
+    private ISysDeptService deptService;
+    
+    @Autowired
+    private ISysUserService userService;
 
     @RequiresPermissions("hr:schedule:view")
     @GetMapping()
@@ -73,6 +84,18 @@ public class HrScheduleController extends BaseController
     @ResponseBody
     public AjaxResult addSave(HrSchedule schedule, @RequestParam(defaultValue = "false") boolean overwrite)
     {
+        if (schedule.getUserId() == null)
+        {
+            return error("请选择员工");
+        }
+        if (schedule.getDeptId() == null)
+        {
+            return error("请选择部门");
+        }
+        if (schedule.getWorkDate() == null)
+        {
+            return error("请选择排班日期");
+        }
         schedule.setCreateBy(getLoginName());
         return toAjax(scheduleService.insertHrSchedule(schedule, overwrite));
     }
@@ -85,12 +108,62 @@ public class HrScheduleController extends BaseController
         return prefix + "/edit";
     }
 
+    @RequiresPermissions("hr:schedule:view")
+    @GetMapping("/selectDeptTree/{deptId}")
+    public String selectDeptTree(@PathVariable("deptId") Long deptId, ModelMap mmap)
+    {
+        mmap.put("dept", deptService.selectDeptById(deptId));
+        return prefix + "/deptTree";
+    }
+
+    @RequiresPermissions("hr:schedule:view")
+    @GetMapping("/deptTreeData")
+    @ResponseBody
+    public List<Ztree> deptTreeData()
+    {
+        return deptService.selectDeptTree(new SysDept());
+    }
+
+    @RequiresPermissions("hr:schedule:view")
+    @GetMapping("/selectUser")
+    public String selectUser(@RequestParam(value = "deptId", required = false) Long deptId, ModelMap mmap)
+    {
+        mmap.put("deptId", deptId);
+        return prefix + "/selectUser";
+    }
+
+    @RequiresPermissions("hr:schedule:view")
+    @PostMapping("/userList")
+    @ResponseBody
+    public TableDataInfo userList(SysUser user)
+    {
+        startPage();
+        List<SysUser> list = userService.selectUserList(user);
+        return getDataTable(list);
+    }
+
     @RequiresPermissions("hr:schedule:edit")
     @Log(title = "HR排班", businessType = BusinessType.UPDATE)
     @PostMapping("/edit")
     @ResponseBody
     public AjaxResult editSave(HrSchedule schedule)
     {
+        if (schedule.getScheduleId() == null)
+        {
+            return error("参数错误：缺少排班ID");
+        }
+        if (schedule.getUserId() == null)
+        {
+            return error("请选择员工");
+        }
+        if (schedule.getDeptId() == null)
+        {
+            return error("请选择部门");
+        }
+        if (schedule.getWorkDate() == null)
+        {
+            return error("请选择排班日期");
+        }
         schedule.setUpdateBy(getLoginName());
         return toAjax(scheduleService.updateHrSchedule(schedule));
     }
@@ -102,5 +175,22 @@ public class HrScheduleController extends BaseController
     public AjaxResult remove(String ids)
     {
         return toAjax(scheduleService.deleteHrScheduleByIds(ids));
+    }
+    
+    @RequiresPermissions("hr:schedule:add")
+    @Log(title = "HR排班", businessType = BusinessType.OTHER)
+    @PostMapping("/generateMonthly")
+    @ResponseBody
+    public AjaxResult generateMonthly(@RequestParam String month,
+                                      @RequestParam(required = false) Long deptId,
+                                      @RequestParam(required = false) Long userId,
+                                      @RequestParam(defaultValue = "false") boolean overwrite)
+    {
+        if (month == null || !month.matches("\\d{4}-\\d{2}"))
+        {
+            return error("月份格式错误，应为yyyy-MM");
+        }
+        int rows = scheduleService.generateMonthlySchedule(month, deptId, userId, overwrite, getLoginName());
+        return AjaxResult.success("月排班生成完成，共生成 " + rows + " 条记录");
     }
 }

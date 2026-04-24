@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('选择员工')"/>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="select-user-form">
+                <input type="hidden" id="deptId" name="deptId" th:value="${deptId}">
+                <div class="select-list">
+                    <ul>
+                        <li>
+                            工号：<input type="text" name="loginName"/>
+                        </li>
+                        <li>
+                            姓名：<input type="text" name="userName"/>
+                        </li>
+                        <li>
+                            手机号：<input type="text" name="phonenumber"/>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="selectedUserId">
+<input type="hidden" id="selectedUserName">
+<input type="hidden" id="selectedDeptId">
+<input type="hidden" id="selectedDeptName">
+
+<th:block th:include="include :: footer"/>
+<script>
+    var prefix = ctx + "hr/schedule";
+
+    $(function () {
+        var options = {
+            url: prefix + "/userList",
+            queryParams: queryParams,
+            showSearch: false,
+            showRefresh: false,
+            showToggle: false,
+            showColumns: false,
+            clickToSelect: true,
+            singleSelect: true,
+            rememberSelected: false,
+            columns: [{
+                radio: true
+            },
+                {
+                    field: 'userId',
+                    title: '用户ID',
+                    visible: false
+                },
+                {
+                    field: 'loginName',
+                    title: '工号'
+                },
+                {
+                    field: 'userName',
+                    title: '姓名'
+                },
+                {
+                    field: 'dept.deptName',
+                    title: '部门'
+                },
+                {
+                    field: 'phonenumber',
+                    title: '手机号'
+                }
+            ],
+            onClickRow: cacheSelected,
+            onCheck: cacheSelected
+        };
+        $.table.init(options);
+    });
+
+    function queryParams(params) {
+        var search = $.table.queryParams(params);
+        search.deptId = $("#deptId").val();
+        search.status = "0";
+        return search;
+    }
+
+    function cacheSelected(row) {
+        if (!row) {
+            return;
+        }
+        $("#selectedUserId").val(row.userId || "");
+        $("#selectedUserName").val(row.userName || "");
+        $("#selectedDeptId").val(row.deptId || "");
+        var deptName = "";
+        if (row.dept && row.dept.deptName) {
+            deptName = row.dept.deptName;
+        }
+        $("#selectedDeptName").val(deptName);
+    }
+
+    function resetQuery() {
+        $("#select-user-form")[0].reset();
+        $.table.search();
+    }
+
+    function submitHandler() {
+        var rows = $("#bootstrap-table").bootstrapTable("getSelections");
+        if (!rows || rows.length === 0) {
+            $.modal.alertWarning("请先选择员工");
+            return false;
+        }
+        cacheSelected(rows[0]);
+        return true;
+    }
+</script>
+</body>
+</html>

@@ -27,6 +27,10 @@ public class HrEmployee extends BaseEntity
 
     @Excel(name = "默认班组")
     private String defaultShiftGroup;
+    
+    private Long defaultShiftId;
+    
+    private String defaultShiftName;
 
     @Excel(name = "设备工号")
     private String deviceUserNo;
@@ -112,6 +116,26 @@ public class HrEmployee extends BaseEntity
     {
         this.defaultShiftGroup = defaultShiftGroup;
     }
+    
+    public Long getDefaultShiftId()
+    {
+        return defaultShiftId;
+    }
+
+    public void setDefaultShiftId(Long defaultShiftId)
+    {
+        this.defaultShiftId = defaultShiftId;
+    }
+    
+    public String getDefaultShiftName()
+    {
+        return defaultShiftName;
+    }
+
+    public void setDefaultShiftName(String defaultShiftName)
+    {
+        this.defaultShiftName = defaultShiftName;
+    }
 
     public String getDeviceUserNo()
     {
@@ -173,4 +197,3 @@ public class HrEmployee extends BaseEntity
         this.deptName = deptName;
     }
 }
-

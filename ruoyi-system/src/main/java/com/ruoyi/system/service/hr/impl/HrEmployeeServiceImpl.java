@@ -19,6 +19,12 @@ public class HrEmployeeServiceImpl implements IHrEmployeeService
     {
         return employeeMapper.selectHrEmployeeList(employee);
     }
+    
+    @Override
+    public List<HrEmployee> selectHrEmployeeByIds(Long[] ids)
+    {
+        return employeeMapper.selectHrEmployeeByIds(ids);
+    }
 
     @Override
     public HrEmployee selectHrEmployeeById(Long hrEmployeeId)
@@ -36,6 +42,18 @@ public class HrEmployeeServiceImpl implements IHrEmployeeService
     public int updateHrEmployee(HrEmployee employee)
     {
         return employeeMapper.updateHrEmployee(employee);
+    }
+    
+    @Override
+    public int batchUpdateDefaultShift(Long shiftId, Long[] employeeIds, String updateBy)
+    {
+        return employeeMapper.batchUpdateDefaultShift(shiftId, updateBy, employeeIds);
+    }
+    
+    @Override
+    public int clearDefaultShiftByIds(Long shiftId, Long[] employeeIds, String updateBy)
+    {
+        return employeeMapper.clearDefaultShiftByIds(shiftId, updateBy, employeeIds);
     }
 
     @Override

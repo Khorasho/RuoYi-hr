@@ -8,25 +8,30 @@
 <div class="main-content">
     <form id="form-employee-edit" class="form-horizontal" th:object="${employee}">
         <input name="hrEmployeeId" type="hidden" th:field="*{hrEmployeeId}"/>
+        <input id="userId" name="userId" type="hidden" th:field="*{userId}"/>
+        <input id="deptId" name="deptId" type="hidden" th:field="*{deptId}"/>
+
         <h4 class="form-header h4">基础信息</h4>
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">关联用户ID：</label>
+                    <label class="col-sm-4 control-label is-required">员工：</label>
                     <div class="col-sm-8">
-                        <input name="userId" class="form-control" type="number" th:field="*{userId}" required>
+                        <div class="input-group">
+                            <input id="userNameDisplay" type="text" class="form-control" th:value="*{userName}" onclick="selectUser()" placeholder="请选择员工" readonly required>
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">归属部门：</label>
+                    <label class="col-sm-4 control-label is-required">所属部门：</label>
                     <div class="col-sm-8">
                         <div class="input-group">
-                            <input id="treeName" name="deptName" type="text" class="form-control" onclick="selectDeptTree()" th:value="*{deptName}" readonly required>
+                            <input id="deptNameDisplay" type="text" class="form-control" th:value="*{deptName}" onclick="selectDeptTree()" placeholder="请选择所属部门" readonly required>
                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
                         </div>
-                        <input id="treeId" name="deptId" type="hidden" th:field="*{deptId}" required>
                     </div>
                 </div>
             </div>
@@ -54,17 +59,20 @@
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label">入职日期：</label>
+                    <label class="col-sm-4 control-label">默认班次：</label>
                     <div class="col-sm-8">
-                        <input type="text" name="joinDate" class="form-control time-input" th:value="${#dates.format(employee.joinDate, 'yyyy-MM-dd')}" placeholder="yyyy-MM-dd">
+                        <select name="defaultShiftId" class="form-control m-b">
+                            <option value="">请选择默认班次</option>
+                            <option th:each="shift:${shifts}" th:value="${shift.shiftId}" th:selected="${employee.defaultShiftId == shift.shiftId}" th:text="${shift.shiftName + ' (' + shift.shiftCode + ')'}"></option>
+                        </select>
                     </div>
                 </div>
             </div>
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label">设备工号：</label>
+                    <label class="col-sm-4 control-label">入职日期：</label>
                     <div class="col-sm-8">
-                        <input name="deviceUserNo" class="form-control" maxlength="64" th:field="*{deviceUserNo}">
+                        <input type="text" name="joinDate" class="form-control time-input" th:value="${#dates.format(employee.joinDate, 'yyyy-MM-dd')}" placeholder="yyyy-MM-dd">
                     </div>
                 </div>
             </div>
@@ -73,9 +81,9 @@
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label">默认班组：</label>
+                    <label class="col-sm-4 control-label">设备工号：</label>
                     <div class="col-sm-8">
-                        <input name="defaultShiftGroup" class="form-control" maxlength="64" th:field="*{defaultShiftGroup}">
+                        <input name="deviceUserNo" class="form-control" maxlength="64" th:field="*{deviceUserNo}">
                     </div>
                 </div>
             </div>
@@ -147,38 +155,80 @@
     });
 
     function selectDeptTree() {
-        var deptId = $.common.isEmpty($("#treeId").val()) ? "100" : $("#treeId").val();
-        var url = ctx + "system/user/selectDeptTree/" + deptId;
+        var deptId = $.common.isEmpty($("#deptId").val()) ? "100" : $("#deptId").val();
+        var url = prefix + "/selectDeptTree/" + deptId;
         var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
         var options = {
-            title: '选择部门',
+            title: "选择部门",
             width: "380",
             url: url,
             btn: btn,
             btn2: function (index) {
-                $("#treeId").val("");
-                $("#treeName").val("");
+                $("#deptId").val("");
+                $("#deptNameDisplay").val("");
+                $("#userId").val("");
+                $("#userNameDisplay").val("");
                 $.modal.close(index);
             },
-            callBack: doSelectDept
+            callBack: doDeptSubmit
         };
         $.modal.openOptions(options);
     }
 
-    function doSelectDept(index) {
+    function doDeptSubmit(index) {
         var body = $.modal.getChildFrame(index);
-        $("#treeId").val(body.find('#treeId').val());
-        $("#treeName").val(body.find('#treeName').val());
+        $("#deptId").val(body.find("#treeId").val());
+        $("#deptNameDisplay").val(body.find("#treeName").val());
+        $("#userId").val("");
+        $("#userNameDisplay").val("");
+        $.modal.close(index);
+    }
+
+    function selectUser() {
+        var deptId = $("#deptId").val();
+        var url = prefix + "/selectUser";
+        if (!$.common.isEmpty(deptId)) {
+            url += "?deptId=" + deptId;
+        }
+        var options = {
+            title: "选择员工",
+            width: "1000",
+            url: url,
+            callBack: doUserSubmit
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doUserSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        var userId = body.find("#selectedUserId").val();
+        if ($.common.isEmpty(userId)) {
+            $.modal.alertWarning("请选择员工");
+            return;
+        }
+        $("#userId").val(userId);
+        $("#userNameDisplay").val(body.find("#selectedUserName").val());
+        $("#deptId").val(body.find("#selectedDeptId").val());
+        $("#deptNameDisplay").val(body.find("#selectedDeptName").val());
         $.modal.close(index);
     }
 
     function submitHandler() {
-        if ($.validate.form()) {
-            var data = $("#form-employee-edit").serializeArray();
-            data.push({name: "attendEnabled", value: $("#attendEnabled").is(':checked') ? "1" : "0"});
-            data.push({name: "workStatus", value: $("#workStatus").is(':checked') ? "0" : "1"});
-            $.operate.saveTab(prefix + "/edit", data);
+        if (!$.validate.form()) {
+            return;
         }
+        if ($.common.isEmpty($("#userId").val())) {
+            $.modal.alertWarning("请选择员工");
+            return;
+        }
+        if ($.common.isEmpty($("#deptId").val())) {
+            $.modal.alertWarning("请选择部门");
+            return;
+        }
+        var data = $("#form-employee-edit").serializeArray();
+        data.push({name: "attendEnabled", value: $("#attendEnabled").is(":checked") ? "1" : "0"});
+        data.push({name: "workStatus", value: $("#workStatus").is(":checked") ? "0" : "1"});
+        $.operate.saveTab(prefix + "/edit", data);
     }
 </script>
 </body>

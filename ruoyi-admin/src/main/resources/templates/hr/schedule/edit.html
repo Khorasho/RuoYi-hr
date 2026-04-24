@@ -8,21 +8,32 @@
 <div class="main-content">
     <form id="form-schedule-edit" class="form-horizontal" th:object="${schedule}">
         <input name="scheduleId" type="hidden" th:field="*{scheduleId}">
+        <input type="hidden" id="userId" name="userId" th:field="*{userId}"/>
+        <input type="hidden" id="deptId" name="deptId" th:field="*{deptId}"/>
+
         <h4 class="form-header h4">排班信息</h4>
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">员工ID：</label>
+                    <label class="col-sm-4 control-label is-required">员工：</label>
                     <div class="col-sm-8">
-                        <input name="userId" type="number" class="form-control" th:field="*{userId}" required>
+                        <div class="input-group">
+                            <input type="text" id="userNameDisplay" class="form-control" th:value="*{userName}"
+                                   placeholder="请选择员工" onclick="selectUser()" readonly required>
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">部门ID：</label>
+                    <label class="col-sm-4 control-label is-required">部门：</label>
                     <div class="col-sm-8">
-                        <input name="deptId" type="number" class="form-control" th:field="*{deptId}" required>
+                        <div class="input-group">
+                            <input type="text" id="deptNameDisplay" class="form-control" th:value="*{deptName}"
+                                   placeholder="请选择部门" onclick="selectDeptTree()" readonly required>
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -33,7 +44,8 @@
                 <div class="form-group">
                     <label class="col-sm-4 control-label is-required">排班日期：</label>
                     <div class="col-sm-8">
-                        <input name="workDate" type="text" class="form-control time-input" th:value="${#dates.format(schedule.workDate, 'yyyy-MM-dd')}" placeholder="yyyy-MM-dd" required>
+                        <input name="workDate" type="text" class="form-control time-input"
+                               th:value="${#dates.format(schedule.workDate, 'yyyy-MM-dd')}" placeholder="yyyy-MM-dd" required>
                     </div>
                 </div>
             </div>
@@ -104,10 +116,78 @@
         });
     });
 
-    function submitHandler() {
-        if ($.validate.form()) {
-            $.operate.saveTab(prefix + "/edit", $("#form-schedule-edit").serialize());
+    function selectDeptTree() {
+        var deptId = $.common.isEmpty($("#deptId").val()) ? "100" : $("#deptId").val();
+        var url = prefix + "/selectDeptTree/" + deptId;
+        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
+        var options = {
+            title: "选择部门",
+            width: "380",
+            url: url,
+            btn: btn,
+            btn2: function (index) {
+                $("#deptId").val("");
+                $("#deptNameDisplay").val("");
+                $("#userId").val("");
+                $("#userNameDisplay").val("");
+                $.modal.close(index);
+            },
+            callBack: doDeptSubmit
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doDeptSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#deptId").val(body.find("#treeId").val());
+        $("#deptNameDisplay").val(body.find("#treeName").val());
+        $("#userId").val("");
+        $("#userNameDisplay").val("");
+        $.modal.close(index);
+    }
+
+    function selectUser() {
+        var deptId = $("#deptId").val();
+        var url = prefix + "/selectUser";
+        if (!$.common.isEmpty(deptId)) {
+            url += "?deptId=" + deptId;
         }
+        var options = {
+            title: "选择员工",
+            width: "1000",
+            url: url,
+            callBack: doUserSubmit
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doUserSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        var userId = body.find("#selectedUserId").val();
+        if ($.common.isEmpty(userId)) {
+            $.modal.alertWarning("请选择员工");
+            return;
+        }
+        $("#userId").val(userId);
+        $("#userNameDisplay").val(body.find("#selectedUserName").val());
+        $("#deptId").val(body.find("#selectedDeptId").val());
+        $("#deptNameDisplay").val(body.find("#selectedDeptName").val());
+        $.modal.close(index);
+    }
+
+    function submitHandler() {
+        if (!$.validate.form()) {
+            return;
+        }
+        if ($.common.isEmpty($("#userId").val())) {
+            $.modal.alertWarning("请选择员工");
+            return;
+        }
+        if ($.common.isEmpty($("#deptId").val())) {
+            $.modal.alertWarning("请选择部门");
+            return;
+        }
+        $.operate.saveTab(prefix + "/edit", $("#form-schedule-edit").serialize());
     }
 </script>
 </body>

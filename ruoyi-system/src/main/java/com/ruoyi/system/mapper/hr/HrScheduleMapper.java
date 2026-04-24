@@ -12,5 +12,6 @@ public interface HrScheduleMapper
     int updateHrSchedule(HrSchedule schedule);
     int deleteHrScheduleByIds(Long[] ids);
     int deleteByUserAndDate(Long userId, LocalDate workDate);
+    int countByUserAndDate(Long userId, LocalDate workDate);
     List<HrSchedule> selectByDate(LocalDate workDate);
 }

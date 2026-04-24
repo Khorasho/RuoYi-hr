@@ -72,6 +72,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <delete id="deleteByUserAndDate">
         delete from hr_schedule where user_id = #{arg0} and work_date = #{arg1}
     </delete>
+    
+    <select id="countByUserAndDate" resultType="int">
+        select count(1) from hr_schedule where user_id = #{arg0} and work_date = #{arg1}
+    </select>
 
     <select id="selectByDate" resultMap="HrScheduleResult" parameterType="java.time.LocalDate">
         select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,

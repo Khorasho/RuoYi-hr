@@ -8,6 +8,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="shiftCode" column="shift_code"/>
         <result property="shiftName" column="shift_name"/>
         <result property="postType" column="post_type"/>
+        <result property="workdayMask" column="workday_mask"/>
         <result property="summerExtendEnabled" column="summer_extend_enabled"/>
         <result property="summerExtendMinutes" column="summer_extend_minutes"/>
         <result property="expectedStartTime" column="expected_start_time"/>
@@ -31,6 +32,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="shiftCode != null and shiftCode != ''">and shift_code like concat('%',#{shiftCode},'%')</if>
             <if test="shiftName != null and shiftName != ''">and shift_name like concat('%',#{shiftName},'%')</if>
             <if test="postType != null and postType != ''">and post_type like concat('%',#{postType},'%')</if>
+            <if test="workdayMask != null and workdayMask != ''">and workday_mask = #{workdayMask}</if>
             <if test="status != null and status != ''">and status = #{status}</if>
         </where>
         order by shift_id desc
@@ -41,9 +43,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <insert id="insertHrShift" parameterType="HrShift" useGeneratedKeys="true" keyProperty="shiftId">
-        insert into hr_shift(shift_code, shift_name, post_type, summer_extend_enabled, summer_extend_minutes,
+        insert into hr_shift(shift_code, shift_name, post_type, workday_mask, summer_extend_enabled, summer_extend_minutes,
         expected_start_time, expected_end_time, status, del_flag, remark, create_by, create_time)
-        values(#{shiftCode}, #{shiftName}, #{postType}, #{summerExtendEnabled}, #{summerExtendMinutes},
+        values(#{shiftCode}, #{shiftName}, #{postType}, #{workdayMask}, #{summerExtendEnabled}, #{summerExtendMinutes},
         #{expectedStartTime}, #{expectedEndTime}, #{status}, '0', #{remark}, #{createBy}, sysdate())
     </insert>
 
@@ -53,6 +55,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="shiftCode != null">shift_code = #{shiftCode},</if>
             <if test="shiftName != null">shift_name = #{shiftName},</if>
             <if test="postType != null">post_type = #{postType},</if>
+            <if test="workdayMask != null">workday_mask = #{workdayMask},</if>
             <if test="summerExtendEnabled != null">summer_extend_enabled = #{summerExtendEnabled},</if>
             <if test="summerExtendMinutes != null">summer_extend_minutes = #{summerExtendMinutes},</if>
             <if test="expectedStartTime != null">expected_start_time = #{expectedStartTime},</if>

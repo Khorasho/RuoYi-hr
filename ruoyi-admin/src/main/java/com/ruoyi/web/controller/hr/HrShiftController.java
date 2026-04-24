@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,13 +22,16 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.domain.Ztree;
 import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.system.domain.SysPost;
+import com.ruoyi.system.domain.hr.HrEmployee;
 import com.ruoyi.system.domain.hr.HrShift;
 import com.ruoyi.system.domain.hr.HrShiftPeriod;
 import com.ruoyi.system.service.ISysPostService;
+import com.ruoyi.system.service.hr.IHrEmployeeService;
 import com.ruoyi.system.service.hr.IHrShiftService;
 
 @Controller
@@ -41,6 +45,9 @@ public class HrShiftController extends BaseController
 
     @Autowired
     private ISysPostService postService;
+    
+    @Autowired
+    private IHrEmployeeService employeeService;
 
     @RequiresPermissions("hr:shift:view")
     @GetMapping()
@@ -94,6 +101,10 @@ public class HrShiftController extends BaseController
                               @RequestParam(value = "periodStart", required = false) String[] periodStart,
                               @RequestParam(value = "periodEnd", required = false) String[] periodEnd)
     {
+        if (StringUtils.isEmpty(shift.getPostType()))
+        {
+            return AjaxResult.error("请选择岗位");
+        }
         shift.setCreateBy(getLoginName());
         return toAjax(shiftService.insertHrShift(shift, buildPeriods(periodStart, periodEnd)));
     }
@@ -105,6 +116,78 @@ public class HrShiftController extends BaseController
         mmap.put("periods", shiftService.selectPeriodsByShiftId(id));
         return prefix + "/edit";
     }
+    
+    @RequiresPermissions("hr:shift:view")
+    @PostMapping("/employeeList/{shiftId}")
+    @ResponseBody
+    public TableDataInfo employeeList(@PathVariable("shiftId") Long shiftId, HrEmployee query)
+    {
+        query.setDefaultShiftId(shiftId);
+        startPage();
+        return getDataTable(employeeService.selectHrEmployeeList(query));
+    }
+    
+    @RequiresPermissions("hr:shift:edit")
+    @GetMapping("/selectEmployee/{shiftId}")
+    public String selectEmployee(@PathVariable("shiftId") Long shiftId, ModelMap mmap)
+    {
+        mmap.put("shiftId", shiftId);
+        return prefix + "/selectEmployee";
+    }
+    
+    @RequiresPermissions("hr:shift:edit")
+    @PostMapping("/selectEmployee/list")
+    @ResponseBody
+    public TableDataInfo selectEmployeeList(HrEmployee query)
+    {
+        query.setWorkStatus("0");
+        query.setAttendEnabled("1");
+        startPage();
+        return getDataTable(employeeService.selectHrEmployeeList(query));
+    }
+    
+    @RequiresPermissions("hr:shift:edit")
+    @PostMapping("/assignEmployees")
+    @ResponseBody
+    public AjaxResult assignEmployees(Long shiftId, String employeeIds, @RequestParam(defaultValue = "false") boolean overwrite)
+    {
+        if (shiftId == null)
+        {
+            return AjaxResult.error("参数错误：缺少班次ID");
+        }
+        Long[] ids = Convert.toLongArray(employeeIds);
+        if (ids == null || ids.length == 0)
+        {
+            return AjaxResult.error("请先选择员工");
+        }
+        List<HrEmployee> selected = employeeService.selectHrEmployeeByIds(ids);
+        List<HrEmployee> conflicts = selected.stream()
+            .filter(e -> e.getDefaultShiftId() != null && !shiftId.equals(e.getDefaultShiftId()))
+            .collect(Collectors.toList());
+        if (!overwrite && !conflicts.isEmpty())
+        {
+            String names = conflicts.stream().map(HrEmployee::getUserName).collect(Collectors.joining("、"));
+            String conflictIds = conflicts.stream().map(e -> String.valueOf(e.getHrEmployeeId())).collect(Collectors.joining(","));
+            return AjaxResult.error("以下员工已在其他班次：" + names + "。是否覆盖？")
+                .put("conflict", true)
+                .put("conflictEmployeeIds", conflictIds);
+        }
+        int rows = employeeService.batchUpdateDefaultShift(shiftId, ids, getLoginName());
+        return AjaxResult.success("已添加 " + rows + " 名员工到当前班次");
+    }
+    
+    @RequiresPermissions("hr:shift:edit")
+    @PostMapping("/unbindEmployee")
+    @ResponseBody
+    public AjaxResult unbindEmployee(Long shiftId, Long hrEmployeeId)
+    {
+        if (shiftId == null || hrEmployeeId == null)
+        {
+            return AjaxResult.error("参数错误");
+        }
+        int rows = employeeService.clearDefaultShiftByIds(shiftId, new Long[]{hrEmployeeId}, getLoginName());
+        return rows > 0 ? AjaxResult.success() : AjaxResult.error("解绑失败，员工可能已不在该班次");
+    }
 
     @RequiresPermissions("hr:shift:edit")
     @Log(title = "HR班次", businessType = BusinessType.UPDATE)
@@ -114,6 +197,14 @@ public class HrShiftController extends BaseController
                                @RequestParam(value = "periodStart", required = false) String[] periodStart,
                                @RequestParam(value = "periodEnd", required = false) String[] periodEnd)
     {
+        if (shift.getShiftId() == null)
+        {
+            return AjaxResult.error("参数错误：缺少班次ID");
+        }
+        if (StringUtils.isEmpty(shift.getPostType()))
+        {
+            return AjaxResult.error("请选择岗位");
+        }
         shift.setUpdateBy(getLoginName());
         return toAjax(shiftService.updateHrShift(shift, buildPeriods(periodStart, periodEnd)));
     }

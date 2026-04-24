@@ -55,6 +55,7 @@ public class HrShiftServiceImpl implements IHrShiftService
     @Transactional
     public int insertHrShift(HrShift shift, List<HrShiftPeriod> periods)
     {
+        fillDefaultWorkdayMask(shift);
         buildExpectedRange(shift, periods);
         int rows = shiftMapper.insertHrShift(shift);
         savePeriods(shift.getShiftId(), shift.getCreateBy(), periods);
@@ -65,6 +66,7 @@ public class HrShiftServiceImpl implements IHrShiftService
     @Transactional
     public int updateHrShift(HrShift shift, List<HrShiftPeriod> periods)
     {
+        fillDefaultWorkdayMask(shift);
         buildExpectedRange(shift, periods);
         int rows = shiftMapper.updateHrShift(shift);
         shiftMapper.deletePeriodsByShiftId(shift.getShiftId());
@@ -145,5 +147,22 @@ public class HrShiftServiceImpl implements IHrShiftService
             ascii = "SHIFT_" + ascii;
         }
         return ascii;
+    }
+    
+    private void fillDefaultWorkdayMask(HrShift shift)
+    {
+        String mask = shift.getWorkdayMask();
+        if (mask == null)
+        {
+            shift.setWorkdayMask("1111100");
+            return;
+        }
+        String cleaned = mask.replaceAll("[^01]", "");
+        if (cleaned.length() != 7)
+        {
+            shift.setWorkdayMask("1111100");
+            return;
+        }
+        shift.setWorkdayMask(cleaned);
     }
 }

@@ -18,6 +18,9 @@ public class HrShift extends BaseEntity
 
     @Excel(name = "岗位")
     private String postType;
+    
+    @Excel(name = "上班日掩码")
+    private String workdayMask;
 
     @Excel(name = "是否夏令时", readConverterExp = "1=是,0=否")
     private String summerExtendEnabled;
@@ -44,6 +47,8 @@ public class HrShift extends BaseEntity
     public void setShiftName(String shiftName) { this.shiftName = shiftName; }
     public String getPostType() { return postType; }
     public void setPostType(String postType) { this.postType = postType; }
+    public String getWorkdayMask() { return workdayMask; }
+    public void setWorkdayMask(String workdayMask) { this.workdayMask = workdayMask; }
     public String getSummerExtendEnabled() { return summerExtendEnabled; }
     public void setSummerExtendEnabled(String summerExtendEnabled) { this.summerExtendEnabled = summerExtendEnabled; }
     public Integer getSummerExtendMinutes() { return summerExtendMinutes; }

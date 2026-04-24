@@ -12,17 +12,24 @@
                     <ul>
                         <li>编码：<input type="text" name="shiftCode"/></li>
                         <li>班次：<input type="text" name="shiftName"/></li>
-                        <li>岗位：<input type="text" name="postType"/></li>
+                        <li>
+                            <input type="hidden" id="queryPostType" name="postType"/>
+                            <label>岗位：</label>
+                            <div class="input-group" style="width: 200px;">
+                                <input type="text" id="queryPostTypeName" class="form-control" placeholder="请选择岗位" onclick="selectQueryPostTree()" readonly>
+                                <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                            </div>
+                        </li>
                         <li>
                             状态：
                             <select name="status" th:with="type=${@dict.getType('sys_normal_disable')}">
-                                <option value="">所有</option>
+                                <option value="">全部</option>
                                 <option th:each="dict : ${type}" th:text="${dict.dictLabel}" th:value="${dict.dictValue}"></option>
                             </select>
                         </li>
                         <li>
                             <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
-                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
                         </li>
                     </ul>
                 </div>
@@ -86,6 +93,12 @@
                 field: 'postType',
                 title: '岗位'
             }, {
+                field: 'workdayMask',
+                title: '上班日',
+                formatter: function (value) {
+                    return formatWorkdayMask(value);
+                }
+            }, {
                 field: 'expectedStartTime',
                 title: '最早上班'
             }, {
@@ -111,6 +124,51 @@
         };
         $.table.init(options);
     });
+
+    function formatWorkdayMask(mask) {
+        if ($.common.isEmpty(mask) || mask.length !== 7) {
+            return "-";
+        }
+        var names = ["一", "二", "三", "四", "五", "六", "日"];
+        var arr = [];
+        for (var i = 0; i < 7; i++) {
+            if (mask.charAt(i) === "1") {
+                arr.push("周" + names[i]);
+            }
+        }
+        return arr.length === 0 ? "无" : arr.join("、");
+    }
+
+    function selectQueryPostTree() {
+        var url = prefix + "/selectPostTree/0";
+        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
+        var options = {
+            title: "选择岗位",
+            width: "380",
+            url: url,
+            btn: btn,
+            btn2: function (index) {
+                $("#queryPostType").val("");
+                $("#queryPostTypeName").val("");
+                $.modal.close(index);
+            },
+            callBack: doQueryPostSubmit
+        };
+        $.modal.openOptions(options);
+    }
+
+    function doQueryPostSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#queryPostType").val(body.find("#treeName").val());
+        $("#queryPostTypeName").val(body.find("#treeName").val());
+        $.modal.close(index);
+    }
+
+    function resetQuery() {
+        $("#shift-form")[0].reset();
+        $("#queryPostType").val("");
+        $.table.search();
+    }
 </script>
 </body>
 </html>

@@ -12,6 +12,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="jobType" column="job_type"/>
         <result property="attendEnabled" column="attend_enabled"/>
         <result property="defaultShiftGroup" column="default_shift_group"/>
+        <result property="defaultShiftId" column="default_shift_id"/>
         <result property="deviceUserNo" column="device_user_no"/>
         <result property="joinDate" column="join_date"/>
         <result property="workStatus" column="work_status"/>
@@ -23,13 +24,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark" column="remark"/>
         <result property="userName" column="user_name"/>
         <result property="deptName" column="dept_name"/>
+        <result property="defaultShiftName" column="default_shift_name"/>
     </resultMap>
 
     <sql id="selectHrEmployeeVo">
-        select e.*, u.user_name, d.dept_name
+        select e.*, u.user_name, d.dept_name, s.shift_name as default_shift_name
         from hr_employee e
         left join sys_user u on u.user_id = e.user_id
         left join sys_dept d on d.dept_id = e.dept_id
+        left join hr_shift s on s.shift_id = e.default_shift_id
     </sql>
 
     <select id="selectHrEmployeeList" parameterType="HrEmployee" resultMap="HrEmployeeResult">
@@ -40,6 +43,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="deptId != null">and e.dept_id = #{deptId}</if>
             <if test="employeeNo != null and employeeNo != ''">and e.employee_no like concat('%',#{employeeNo},'%')</if>
             <if test="jobType != null and jobType != ''">and e.job_type like concat('%',#{jobType},'%')</if>
+            <if test="attendEnabled != null and attendEnabled != ''">and e.attend_enabled = #{attendEnabled}</if>
             <if test="workStatus != null and workStatus != ''">and e.work_status = #{workStatus}</if>
         </where>
         order by e.hr_employee_id desc
@@ -49,11 +53,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectHrEmployeeVo"/>
         where e.hr_employee_id = #{hrEmployeeId}
     </select>
+    
+    <select id="selectHrEmployeeByIds" parameterType="Long" resultMap="HrEmployeeResult">
+        <include refid="selectHrEmployeeVo"/>
+        where e.hr_employee_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
 
     <insert id="insertHrEmployee" parameterType="HrEmployee" useGeneratedKeys="true" keyProperty="hrEmployeeId">
-        insert into hr_employee(user_id, dept_id, employee_no, job_type, attend_enabled, default_shift_group,
+        insert into hr_employee(user_id, dept_id, employee_no, job_type, attend_enabled, default_shift_group, default_shift_id,
         device_user_no, join_date, work_status, del_flag, remark, create_by, create_time)
-        values(#{userId}, #{deptId}, #{employeeNo}, #{jobType}, #{attendEnabled}, #{defaultShiftGroup},
+        values(#{userId}, #{deptId}, #{employeeNo}, #{jobType}, #{attendEnabled}, #{defaultShiftGroup}, #{defaultShiftId},
         #{deviceUserNo}, #{joinDate}, #{workStatus}, '0', #{remark}, #{createBy}, sysdate())
     </insert>
 
@@ -66,6 +76,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="jobType != null">job_type = #{jobType},</if>
             <if test="attendEnabled != null">attend_enabled = #{attendEnabled},</if>
             <if test="defaultShiftGroup != null">default_shift_group = #{defaultShiftGroup},</if>
+            default_shift_id = #{defaultShiftId},
             <if test="deviceUserNo != null">device_user_no = #{deviceUserNo},</if>
             <if test="joinDate != null">join_date = #{joinDate},</if>
             <if test="workStatus != null">work_status = #{workStatus},</if>
@@ -79,5 +90,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="deleteHrEmployeeByIds" parameterType="Long">
         update hr_employee set del_flag = '2' where hr_employee_id in
         <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+    
+    <update id="batchUpdateDefaultShift">
+        update hr_employee
+        set default_shift_id = #{arg0}, update_by = #{arg1}, update_time = sysdate()
+        where del_flag = '0' and hr_employee_id in
+        <foreach collection="arg2" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+    
+    <update id="clearDefaultShiftByIds">
+        update hr_employee
+        set default_shift_id = null, update_by = #{arg1}, update_time = sysdate()
+        where del_flag = '0' and default_shift_id = #{arg0} and hr_employee_id in
+        <foreach collection="arg2" item="id" open="(" separator="," close=")">#{id}</foreach>
     </update>
 </mapper>

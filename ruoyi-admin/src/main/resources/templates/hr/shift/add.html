@@ -27,6 +27,7 @@
                 </div>
             </div>
         </div>
+
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
@@ -52,6 +53,33 @@
                 </div>
             </div>
         </div>
+
+        <h4 class="form-header h4">上班规则</h4>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-sm-2 control-label is-required">每周上班日：</label>
+                    <div class="col-sm-10">
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0" checked> 周一</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1" checked> 周二</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2" checked> 周三</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3" checked> 周四</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4" checked> 周五</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="5"> 周六</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="6"> 周日</label>
+                        <input type="hidden" id="workdayMask" name="workdayMask" value="1111100">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-10">
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('single')"><i class="fa fa-clone"></i> 单休模板(周日休)</a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('double')"><i class="fa fa-clone"></i> 双休模板(周六周日休)</a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('all')"><i class="fa fa-clone"></i> 全勤模板</a>
+            </div>
+        </div>
+
         <h4 class="form-header h4">班次时段</h4>
         <div class="row">
             <div class="col-sm-12">
@@ -81,54 +109,135 @@
 <th:block th:include="include :: datetimepicker-js"/>
 <script>
     var prefix = ctx + "hr/shift";
+
     $(function () {
         addPeriodRow();
         addPeriodRow();
         $("#shiftName").on("blur", function () { generateShiftCode(); });
-        $("#form-shift-add").validate({ onkeyup: false, focusCleanup: true, rules: { shiftName: {required: true}, shiftCode: {required: true}, postType: {required: true} } });
+        $(".workday").on("change", buildWorkdayMask);
+        $("#form-shift-add").validate({
+            onkeyup: false,
+            focusCleanup: true,
+            rules: { shiftName: {required: true}, shiftCode: {required: true}, postType: {required: true} }
+        });
+        buildWorkdayMask();
     });
+
     function generateShiftCode() {
         var shiftName = $.common.trim($("#shiftName").val());
-        if ($.common.isEmpty(shiftName)) { return; }
-        $.post(prefix + "/generateCode", {shiftName: shiftName}, function (res) { if (res.code === 0) { $("#shiftCode").val(res.shiftCode); } });
+        if ($.common.isEmpty(shiftName)) {
+            return;
+        }
+        $.post(prefix + "/generateCode", {shiftName: shiftName}, function (res) {
+            if (res.code === 0) {
+                $("#shiftCode").val(res.shiftCode);
+            }
+        });
     }
+
     function selectPostTree() {
         var postId = $("#postType").data("postId") || "0";
         var url = prefix + "/selectPostTree/" + postId;
         var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
-        var options = { title: '选择岗位', width: "380", url: url, btn: btn, btn2: function (index) { $("#postType").val("").removeData("postId"); $("#postTypeName").val(""); $.modal.close(index); }, callBack: doSelectPost };
+        var options = {
+            title: "选择岗位",
+            width: "380",
+            url: url,
+            btn: btn,
+            btn2: function (index) {
+                $("#postType").val("").removeData("postId");
+                $("#postTypeName").val("");
+                $.modal.close(index);
+            },
+            callBack: doSelectPost
+        };
         $.modal.openOptions(options);
     }
+
     function doSelectPost(index) {
         var body = $.modal.getChildFrame(index);
-        var postId = body.find('#treeId').val();
-        var postName = body.find('#treeName').val();
+        var postId = body.find("#treeId").val();
+        var postName = body.find("#treeName").val();
         $("#postType").val(postName).data("postId", postId);
         $("#postTypeName").val(postName);
         $.modal.close(index);
     }
+
+    function applyWorkdayTemplate(type) {
+        var masks = {
+            single: "1111110",
+            double: "1111100",
+            all: "1111111"
+        };
+        setWorkdayByMask(masks[type] || "1111100");
+    }
+
+    function setWorkdayByMask(mask) {
+        $(".workday").each(function () {
+            var idx = parseInt($(this).attr("data-index"));
+            $(this).prop("checked", mask.charAt(idx) === "1");
+        });
+        buildWorkdayMask();
+    }
+
+    function buildWorkdayMask() {
+        var mask = "";
+        $(".workday").each(function () {
+            mask += $(this).is(":checked") ? "1" : "0";
+        });
+        $("#workdayMask").val(mask);
+    }
+
     function addPeriodRow(startTime, endTime) {
         var index = $("#periodTable tbody tr").length + 1;
-        var tr = '';
-        tr += '<tr><td class="text-center seq">' + index + '</td>';
-        tr += '<td><input type="text" name="periodStart" class="form-control period-time" placeholder="HH:mm" value="' + (startTime || '') + '" required></td>';
-        tr += '<td><input type="text" name="periodEnd" class="form-control period-time" placeholder="HH:mm" value="' + (endTime || '') + '" required></td>';
-        tr += '<td class="text-center"><a href="javascript:void(0)" class="btn btn-danger btn-xs" onclick="removePeriodRow(this)"><i class="fa fa-remove"></i></a></td></tr>';
+        var tr = "";
+        tr += "<tr><td class='text-center seq'>" + index + "</td>";
+        tr += "<td><input type='text' name='periodStart' class='form-control period-time' placeholder='HH:mm' value='" + (startTime || "") + "' required></td>";
+        tr += "<td><input type='text' name='periodEnd' class='form-control period-time' placeholder='HH:mm' value='" + (endTime || "") + "' required></td>";
+        tr += "<td class='text-center'><a href='javascript:void(0)' class='btn btn-danger btn-xs' onclick='removePeriodRow(this)'><i class='fa fa-remove'></i></a></td></tr>";
         $("#periodTable tbody").append(tr);
         initTimePicker();
     }
-    function removePeriodRow(btn) { $(btn).closest("tr").remove(); reindexRows(); }
-    function reindexRows() { $("#periodTable tbody tr").each(function (i) { $(this).find(".seq").text(i + 1); }); }
-    function initTimePicker() { $('.period-time').datetimepicker('remove'); $('.period-time').datetimepicker({ format: 'hh:ii', startView: 1, minView: 0, maxView: 1, autoclose: true, todayBtn: false, minuteStep: 5, language: 'zh-CN' }); }
+
+    function removePeriodRow(btn) {
+        $(btn).closest("tr").remove();
+        reindexRows();
+    }
+
+    function reindexRows() {
+        $("#periodTable tbody tr").each(function (i) {
+            $(this).find(".seq").text(i + 1);
+        });
+    }
+
+    function initTimePicker() {
+        $(".period-time").datetimepicker("remove");
+        $(".period-time").datetimepicker({
+            format: "hh:ii",
+            startView: 1,
+            minView: 0,
+            maxView: 1,
+            autoclose: true,
+            todayBtn: false,
+            minuteStep: 5,
+            language: "zh-CN"
+        });
+    }
+
     function submitHandler() {
-        if ($.validate.form()) {
-            var status = $("#status").is(':checked') ? 0 : 1;
-            var data = $("#form-shift-add").serializeArray();
-            data.push({name: "status", value: status});
-            data.push({name: "summerExtendEnabled", value: 0});
-            data.push({name: "summerExtendMinutes", value: 30});
-            $.operate.saveTab(prefix + "/add", data);
+        if (!$.validate.form()) {
+            return;
         }
+        if ($.common.isEmpty($("#postType").val())) {
+            $.modal.alertWarning("请选择岗位");
+            return;
+        }
+        var status = $("#status").is(":checked") ? 0 : 1;
+        var data = $("#form-shift-add").serializeArray();
+        data.push({name: "status", value: status});
+        data.push({name: "summerExtendEnabled", value: 0});
+        data.push({name: "summerExtendMinutes", value: 30});
+        $.operate.saveTab(prefix + "/add", data);
     }
 </script>
 </body>

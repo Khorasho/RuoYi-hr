@@ -16,7 +16,7 @@
                         <li>
                             在职状态：
                             <select name="workStatus">
-                                <option value="">所有</option>
+                                <option value="">全部</option>
                                 <option value="0">在职</option>
                                 <option value="1">离职</option>
                             </select>
@@ -67,7 +67,10 @@
             modalName: "员工",
             columns: [{checkbox: true},
                 {field: 'hrEmployeeId', title: 'ID'},
-                {field: 'employeeNo', title: '工号', sortable: true,
+                {
+                    field: 'employeeNo',
+                    title: '工号',
+                    sortable: true,
                     formatter: function (value, row) {
                         return '<a href="javascript:void(0)" onclick="$.operate.editTab(\'' + row.hrEmployeeId + '\')">' + (value || '-') + '</a>';
                     }
@@ -75,6 +78,7 @@
                 {field: 'userName', title: '姓名'},
                 {field: 'deptName', title: '部门'},
                 {field: 'jobType', title: '工种'},
+                {field: 'defaultShiftName', title: '默认班次'},
                 {field: 'attendEnabled', title: '参与考勤', formatter: function (value) { return value === '1' ? '是' : '否'; }},
                 {field: 'workStatus', title: '在职状态', formatter: function (value) { return value === '0' ? '在职' : '离职'; }},
                 {field: 'joinDate', title: '入职日期'},

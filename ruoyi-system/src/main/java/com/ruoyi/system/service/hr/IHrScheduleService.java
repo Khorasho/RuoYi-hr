@@ -10,4 +10,5 @@ public interface IHrScheduleService
     int insertHrSchedule(HrSchedule schedule, boolean overwrite);
     int updateHrSchedule(HrSchedule schedule);
     int deleteHrScheduleByIds(String ids);
+    int generateMonthlySchedule(String month, Long deptId, Long userId, boolean overwrite, String operator);
 }

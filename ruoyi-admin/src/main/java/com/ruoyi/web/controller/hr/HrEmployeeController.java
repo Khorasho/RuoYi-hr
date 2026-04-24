@@ -13,11 +13,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.domain.Ztree;
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.system.domain.hr.HrEmployee;
+import com.ruoyi.system.domain.hr.HrShift;
+import com.ruoyi.system.service.ISysDeptService;
+import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.system.service.hr.IHrEmployeeService;
+import com.ruoyi.system.service.hr.IHrShiftService;
 
 @Controller
 @RequestMapping("/hr/employee")
@@ -27,6 +34,15 @@ public class HrEmployeeController extends BaseController
 
     @Autowired
     private IHrEmployeeService employeeService;
+    
+    @Autowired
+    private IHrShiftService shiftService;
+    
+    @Autowired
+    private ISysDeptService deptService;
+    
+    @Autowired
+    private ISysUserService userService;
 
     @RequiresPermissions("hr:employee:view")
     @GetMapping()
@@ -56,8 +72,9 @@ public class HrEmployeeController extends BaseController
     }
 
     @GetMapping("/add")
-    public String add()
+    public String add(ModelMap mmap)
     {
+        mmap.put("shifts", shiftService.selectHrShiftList(new HrShift()));
         return prefix + "/add";
     }
 
@@ -67,6 +84,18 @@ public class HrEmployeeController extends BaseController
     @ResponseBody
     public AjaxResult addSave(HrEmployee employee)
     {
+        if (employee.getUserId() == null)
+        {
+            return error("请选择员工");
+        }
+        if (employee.getDeptId() == null)
+        {
+            return error("请选择部门");
+        }
+        if (employee.getEmployeeNo() == null || employee.getEmployeeNo().trim().isEmpty())
+        {
+            return error("请输入工号");
+        }
         employee.setCreateBy(getLoginName());
         return toAjax(employeeService.insertHrEmployee(employee));
     }
@@ -75,7 +104,41 @@ public class HrEmployeeController extends BaseController
     public String edit(@PathVariable("id") Long id, ModelMap mmap)
     {
         mmap.put("employee", employeeService.selectHrEmployeeById(id));
+        mmap.put("shifts", shiftService.selectHrShiftList(new HrShift()));
         return prefix + "/edit";
+    }
+
+    @RequiresPermissions("hr:employee:view")
+    @GetMapping("/selectDeptTree/{deptId}")
+    public String selectDeptTree(@PathVariable("deptId") Long deptId, ModelMap mmap)
+    {
+        mmap.put("dept", deptService.selectDeptById(deptId));
+        return prefix + "/deptTree";
+    }
+
+    @RequiresPermissions("hr:employee:view")
+    @GetMapping("/deptTreeData")
+    @ResponseBody
+    public List<Ztree> deptTreeData()
+    {
+        return deptService.selectDeptTree(new SysDept());
+    }
+
+    @RequiresPermissions("hr:employee:view")
+    @GetMapping("/selectUser")
+    public String selectUser(Long deptId, ModelMap mmap)
+    {
+        mmap.put("deptId", deptId);
+        return prefix + "/selectUser";
+    }
+
+    @RequiresPermissions("hr:employee:view")
+    @PostMapping("/userList")
+    @ResponseBody
+    public TableDataInfo userList(SysUser user)
+    {
+        startPage();
+        return getDataTable(userService.selectUserList(user));
     }
 
     @RequiresPermissions("hr:employee:edit")
@@ -84,6 +147,22 @@ public class HrEmployeeController extends BaseController
     @ResponseBody
     public AjaxResult editSave(HrEmployee employee)
     {
+        if (employee.getHrEmployeeId() == null)
+        {
+            return error("参数错误：缺少员工ID");
+        }
+        if (employee.getUserId() == null)
+        {
+            return error("请选择员工");
+        }
+        if (employee.getDeptId() == null)
+        {
+            return error("请选择部门");
+        }
+        if (employee.getEmployeeNo() == null || employee.getEmployeeNo().trim().isEmpty())
+        {
+            return error("请输入工号");
+        }
         employee.setUpdateBy(getLoginName());
         return toAjax(employeeService.updateHrEmployee(employee));
     }
