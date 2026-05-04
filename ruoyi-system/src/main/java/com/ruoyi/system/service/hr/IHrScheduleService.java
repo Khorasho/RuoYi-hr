@@ -1,5 +1,6 @@
 package com.ruoyi.system.service.hr;
 
+import java.time.LocalDate;
 import java.util.List;
 import com.ruoyi.system.domain.hr.HrSchedule;
 
@@ -11,4 +12,7 @@ public interface IHrScheduleService
     int updateHrSchedule(HrSchedule schedule);
     int deleteHrScheduleByIds(String ids);
     int generateMonthlySchedule(String month, Long deptId, Long userId, boolean overwrite, String operator);
+    HrSchedule selectByUserAndDate(Long userId, LocalDate workDate);
+    List<HrSchedule> selectByShiftId(Long shiftId);
+    int deleteByShiftAndUser(Long shiftId, Long userId);
 }

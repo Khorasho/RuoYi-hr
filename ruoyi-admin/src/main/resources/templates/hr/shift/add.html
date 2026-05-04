@@ -4,7 +4,7 @@
     <th:block th:include="include :: header('新增班次')"/>
     <th:block th:include="include :: datetimepicker-css"/>
 </head>
-<body>
+<body class="white-bg">
 <div class="main-content">
     <form id="form-shift-add" class="form-horizontal">
         <h4 class="form-header h4">基础信息</h4>
@@ -34,7 +34,8 @@
                     <label class="col-sm-4 control-label is-required">岗位选择：</label>
                     <div class="col-sm-8">
                         <div class="input-group">
-                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()" placeholder="请选择岗位" readonly required>
+                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()"
+                                   placeholder="请选择岗位" readonly required>
                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
                         </div>
                         <input id="postType" name="postType" type="hidden"/>
@@ -60,11 +61,11 @@
                 <div class="form-group">
                     <label class="col-sm-2 control-label is-required">每周上班日：</label>
                     <div class="col-sm-10">
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0" checked> 周一</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1" checked> 周二</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2" checked> 周三</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3" checked> 周四</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4" checked> 周五</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0"> 周一</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1"> 周二</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2"> 周三</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3"> 周四</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4"> 周五</label>
                         <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="5"> 周六</label>
                         <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="6"> 周日</label>
                         <input type="hidden" id="workdayMask" name="workdayMask" value="1111100">
@@ -105,22 +106,26 @@
         <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-reply-all"></i> 关闭</button>
     </div>
 </div>
+
 <th:block th:include="include :: footer"/>
 <th:block th:include="include :: datetimepicker-js"/>
 <script>
     var prefix = ctx + "hr/shift";
 
     $(function () {
+        setWorkdayByMask("1111100");
         addPeriodRow();
-        addPeriodRow();
-        $("#shiftName").on("blur", function () { generateShiftCode(); });
+        $("#shiftName").on("blur", generateShiftCode);
         $(".workday").on("change", buildWorkdayMask);
         $("#form-shift-add").validate({
             onkeyup: false,
             focusCleanup: true,
-            rules: { shiftName: {required: true}, shiftCode: {required: true}, postType: {required: true} }
+            rules: {
+                shiftName: {required: true},
+                shiftCode: {required: true},
+                postType: {required: true}
+            }
         });
-        buildWorkdayMask();
     });
 
     function generateShiftCode() {
@@ -137,28 +142,25 @@
 
     function selectPostTree() {
         var postId = $("#postType").data("postId") || "0";
-        var url = prefix + "/selectPostTree/" + postId;
-        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
-        var options = {
+        $.modal.openOptions({
             title: "选择岗位",
             width: "380",
-            url: url,
-            btn: btn,
+            url: prefix + "/selectPostTree/" + postId,
+            btn: ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'],
             btn2: function (index) {
                 $("#postType").val("").removeData("postId");
                 $("#postTypeName").val("");
                 $.modal.close(index);
             },
             callBack: doSelectPost
-        };
-        $.modal.openOptions(options);
+        });
     }
 
     function doSelectPost(index) {
         var body = $.modal.getChildFrame(index);
         var postId = body.find("#treeId").val();
         var postName = body.find("#treeName").val();
-        $("#postType").val(postName).data("postId", postId);
+        $("#postType").val(postId + "|" + postName).data("postId", postId);
         $("#postTypeName").val(postName);
         $.modal.close(index);
     }
@@ -174,7 +176,7 @@
 
     function setWorkdayByMask(mask) {
         $(".workday").each(function () {
-            var idx = parseInt($(this).attr("data-index"));
+            var idx = parseInt($(this).attr("data-index"), 10);
             $(this).prop("checked", mask.charAt(idx) === "1");
         });
         buildWorkdayMask();
@@ -225,6 +227,7 @@
     }
 
     function submitHandler() {
+        buildWorkdayMask();
         if (!$.validate.form()) {
             return;
         }
@@ -232,9 +235,8 @@
             $.modal.alertWarning("请选择岗位");
             return;
         }
-        var status = $("#status").is(":checked") ? 0 : 1;
         var data = $("#form-shift-add").serializeArray();
-        data.push({name: "status", value: status});
+        data.push({name: "status", value: $("#status").is(":checked") ? 0 : 1});
         data.push({name: "summerExtendEnabled", value: 0});
         data.push({name: "summerExtendMinutes", value: 30});
         $.operate.saveTab(prefix + "/add", data);

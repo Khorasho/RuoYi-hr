@@ -22,6 +22,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.system.domain.hr.HrSchedule;
 import com.ruoyi.system.domain.hr.HrShift;
+import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.system.service.hr.IHrScheduleService;
@@ -44,6 +45,9 @@ public class HrScheduleController extends BaseController
     
     @Autowired
     private ISysUserService userService;
+
+    @Autowired
+    private SysUserMapper userMapper;
 
     @RequiresPermissions("hr:schedule:view")
     @GetMapping()
@@ -137,8 +141,12 @@ public class HrScheduleController extends BaseController
     @ResponseBody
     public TableDataInfo userList(SysUser user)
     {
+        if (user.getStatus() == null || user.getStatus().isEmpty())
+        {
+            user.setStatus("0");
+        }
         startPage();
-        List<SysUser> list = userService.selectUserList(user);
+        List<SysUser> list = userMapper.selectUserList(user);
         return getDataTable(list);
     }
 
@@ -172,7 +180,7 @@ public class HrScheduleController extends BaseController
     @Log(title = "HR排班", businessType = BusinessType.DELETE)
     @PostMapping("/remove")
     @ResponseBody
-    public AjaxResult remove(String ids)
+    public AjaxResult remove(@RequestParam("ids") String ids)
     {
         return toAjax(scheduleService.deleteHrScheduleByIds(ids));
     }

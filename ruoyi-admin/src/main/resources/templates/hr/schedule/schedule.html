@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
 <head>
-    <th:block th:include="include :: header('排班管理')"/>
+    <th:block th:include="include :: header('schedule')"/>
 </head>
 <body class="gray-bg">
 <div class="container-div">
@@ -12,40 +12,46 @@
                     <ul>
                         <li>
                             <input type="hidden" id="queryUserId" name="userId"/>
-                            <label>员工：</label>
+                            <label>&#21592;&#24037;&#65306;</label>
                             <div class="input-group" style="width: 200px;">
-                                <input type="text" id="queryUserName" class="form-control" placeholder="请选择员工" onclick="selectQueryUser()" readonly>
+                                <input type="text" id="queryUserName" class="form-control" placeholder="&#35831;&#36873;&#25321;&#21592;&#24037;"
+                                       onclick="selectQueryUser()" readonly>
                                 <span class="input-group-addon"><i class="fa fa-search"></i></span>
                             </div>
                         </li>
                         <li>
                             <input type="hidden" id="queryDeptId" name="deptId"/>
-                            <label>部门：</label>
+                            <label>&#37096;&#38376;&#65306;</label>
                             <div class="input-group" style="width: 200px;">
-                                <input type="text" id="queryDeptName" class="form-control" placeholder="请选择部门" onclick="selectQueryDeptTree()" readonly>
+                                <input type="text" id="queryDeptName" class="form-control" placeholder="&#35831;&#36873;&#25321;&#37096;&#38376;"
+                                       onclick="selectQueryDeptTree()" readonly>
                                 <span class="input-group-addon"><i class="fa fa-search"></i></span>
                             </div>
                         </li>
                         <li>
-                            <label>排班月份：</label>
+                            <label>&#25490;&#29677;&#26376;&#20221;&#65306;</label>
                             <input type="month" id="scheduleMonth" class="form-control" style="width: 160px; display: inline-block;">
                         </li>
                         <li>
-                            <label>覆盖已排：</label>
+                            <label>&#35206;&#30422;&#24050;&#25490;&#65306;</label>
                             <label class="toggle-switch switch-solid" style="margin-top: 4px;">
                                 <input type="checkbox" id="overwriteGenerate" checked>
                                 <span></span>
                             </label>
                         </li>
                         <li class="select-time">
-                            <label>排班日期：</label>
-                            <input type="text" class="time-input" id="startDate" placeholder="开始日期" name="params[beginTime]"/>
+                            <label>&#25490;&#29677;&#26085;&#26399;&#65306;</label>
+                            <input type="text" class="time-input" id="startDate" placeholder="&#24320;&#22987;&#26085;&#26399;" name="params[beginTime]"/>
                             <span>-</span>
-                            <input type="text" class="time-input" id="endDate" placeholder="结束日期" name="params[endTime]"/>
+                            <input type="text" class="time-input" id="endDate" placeholder="&#32467;&#26463;&#26085;&#26399;" name="params[endTime]"/>
                         </li>
                         <li>
-                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
-                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('schedule-form')">
+                                <i class="fa fa-search"></i>&nbsp;&#25628;&#32034;
+                            </a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
+                                <i class="fa fa-refresh"></i>&nbsp;&#37325;&#32622;
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -54,19 +60,19 @@
 
         <div class="btn-group-sm" id="toolbar" role="group">
             <a class="btn btn-info" href="javascript:void(0)" onclick="generateMonthly()" shiro:hasPermission="hr:schedule:add">
-                <i class="fa fa-calendar-plus-o"></i> 生成月排班
+                <i class="fa fa-calendar-plus-o"></i> &#29983;&#25104;&#26376;&#25490;&#29677;
             </a>
             <a class="btn btn-success" onclick="$.operate.addTab()" shiro:hasPermission="hr:schedule:add">
-                <i class="fa fa-plus"></i> 新增
+                <i class="fa fa-plus"></i> &#26032;&#22686;
             </a>
             <a class="btn btn-primary single disabled" onclick="$.operate.editTab()" shiro:hasPermission="hr:schedule:edit">
-                <i class="fa fa-edit"></i> 修改
+                <i class="fa fa-edit"></i> &#20462;&#25913;
             </a>
             <a class="btn btn-danger multiple disabled" onclick="$.operate.removeAll()" shiro:hasPermission="hr:schedule:remove">
-                <i class="fa fa-remove"></i> 删除
+                <i class="fa fa-remove"></i> &#21024;&#38500;
             </a>
             <a class="btn btn-warning" onclick="$.table.exportExcel()" shiro:hasPermission="hr:schedule:export">
-                <i class="fa fa-download"></i> 导出
+                <i class="fa fa-download"></i> &#23548;&#20986;
             </a>
         </div>
 
@@ -83,9 +89,7 @@
     var prefix = ctx + "hr/schedule";
 
     $(function () {
-        var now = new Date();
-        var m = now.getMonth() + 1;
-        $("#scheduleMonth").val(now.getFullYear() + "-" + (m < 10 ? "0" + m : m));
+        setCurrentMonth();
 
         var options = {
             url: prefix + "/list",
@@ -93,36 +97,77 @@
             updateUrl: prefix + "/edit/{id}",
             removeUrl: prefix + "/remove",
             exportUrl: prefix + "/export",
-            modalName: "排班",
+            modalName: "\u6392\u73ed",
+            formId: "schedule-form",
             sortName: "workDate",
             sortOrder: "desc",
-            columns: [{checkbox: true},
-                {field: 'scheduleId', title: 'ID'},
-                {field: 'userId', title: '员工ID'},
-                {field: 'userName', title: '姓名'},
-                {field: 'deptName', title: '部门'},
-                {field: 'workDate', title: '排班日期', sortable: true},
-                {field: 'shiftName', title: '班次'},
-                {field: 'restType', title: '休息类型'},
-                {field: 'scheduleRemark', title: '备注'},
-                {
-                    title: '操作',
-                    align: 'center',
-                    formatter: function (value, row) {
-                        var actions = [];
-                        actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="$.operate.editTab(\'' + row.scheduleId + '\')"><i class="fa fa-edit"></i>编辑</a> ');
-                        actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.scheduleId + '\')"><i class="fa fa-remove"></i>删除</a>');
-                        return actions.join('');
-                    }
-                }]
+            columns: [{
+                checkbox: true
+            }, {
+                field: "scheduleId",
+                title: "ID"
+            }, {
+                field: "userId",
+                title: "\u5458\u5de5ID"
+            }, {
+                field: "userName",
+                title: "\u59d3\u540d"
+            }, {
+                field: "deptName",
+                title: "\u90e8\u95e8"
+            }, {
+                field: "workDate",
+                title: "\u6392\u73ed\u65e5\u671f",
+                sortable: true
+            }, {
+                field: "shiftName",
+                title: "\u73ed\u6b21"
+            }, {
+                field: "restType",
+                title: "\u4f11\u606f\u7c7b\u578b",
+                formatter: function (value) {
+                    return formatRestType(value);
+                }
+            }, {
+                field: "scheduleRemark",
+                title: "\u5907\u6ce8"
+            }, {
+                title: "\u64cd\u4f5c",
+                align: "center",
+                formatter: function (value, row) {
+                    var actions = [];
+                    actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="$.operate.editTab(\'' + row.scheduleId + '\')"><i class="fa fa-edit"></i>\u7f16\u8f91</a> ');
+                    actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.scheduleId + '\')"><i class="fa fa-remove"></i>\u5220\u9664</a>');
+                    return actions.join("");
+                }
+            }]
         };
         $.table.init(options);
     });
 
+    function formatRestType(value) {
+        if ($.common.isEmpty(value)) {
+            return "\u6b63\u5e38\u51fa\u52e4";
+        }
+        if (value === "REST") {
+            return "\u4f11\u606f";
+        }
+        if (value === "HALF_REST") {
+            return "\u534a\u5929\u4f11";
+        }
+        return value;
+    }
+
+    function setCurrentMonth() {
+        var now = new Date();
+        var month = now.getMonth() + 1;
+        $("#scheduleMonth").val(now.getFullYear() + "-" + (month < 10 ? "0" + month : month));
+    }
+
     function generateMonthly() {
         var month = $("#scheduleMonth").val();
         if ($.common.isEmpty(month)) {
-            $.modal.alertWarning("请先选择排班月份");
+            $.modal.alertWarning("\u8bf7\u5148\u9009\u62e9\u6392\u73ed\u6708\u4efd");
             return;
         }
         var data = {
@@ -131,20 +176,18 @@
             userId: $("#queryUserId").val(),
             overwrite: $("#overwriteGenerate").is(":checked")
         };
-        $.modal.confirm("确认按当前筛选条件生成 " + month + " 月排班吗？", function () {
+        $.modal.confirm("\u786e\u8ba4\u6309\u5f53\u524d\u7b5b\u9009\u6761\u4ef6\u751f\u6210 " + month + " \u6708\u6392\u73ed\u5417\uff1f", function () {
             $.operate.post(prefix + "/generateMonthly", data);
         });
     }
 
     function selectQueryDeptTree() {
         var deptId = $.common.isEmpty($("#queryDeptId").val()) ? "100" : $("#queryDeptId").val();
-        var url = prefix + "/selectDeptTree/" + deptId;
-        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
-        var options = {
-            title: "选择部门",
+        $.modal.openOptions({
+            title: "\u9009\u62e9\u90e8\u95e8",
             width: "380",
-            url: url,
-            btn: btn,
+            url: prefix + "/selectDeptTree/" + deptId,
+            btn: ['<i class="fa fa-check"></i> \u786e\u8ba4', '<i class="fa fa-trash-o"></i> \u6e05\u9664', '<i class="fa fa-close"></i> \u5173\u95ed'],
             btn2: function (index) {
                 $("#queryDeptId").val("");
                 $("#queryDeptName").val("");
@@ -153,8 +196,7 @@
                 $.modal.close(index);
             },
             callBack: doQueryDeptSubmit
-        };
-        $.modal.openOptions(options);
+        });
     }
 
     function doQueryDeptSubmit(index) {
@@ -167,44 +209,49 @@
     }
 
     function selectQueryUser() {
-        var deptId = $("#queryDeptId").val();
         var url = prefix + "/selectUser";
-        if (!$.common.isEmpty(deptId)) {
+        var deptId = $("#queryDeptId").val();
+        if ($.common.isNotEmpty(deptId)) {
             url += "?deptId=" + deptId;
         }
-        var options = {
-            title: "选择员工",
+        $.modal.openOptions({
+            title: "\u9009\u62e9\u5458\u5de5",
             width: "1000",
             url: url,
             callBack: doQueryUserSubmit
-        };
-        $.modal.openOptions(options);
+        });
     }
 
-    function doQueryUserSubmit(index) {
-        var body = $.modal.getChildFrame(index);
-        var userId = body.find("#selectedUserId").val();
-        if ($.common.isEmpty(userId)) {
-            $.modal.alertWarning("请选择员工");
+    function doQueryUserSubmit(index, layero) {
+        var rows = layero.find("iframe")[0].contentWindow.getSelections();
+        if (!rows || rows.length === 0) {
+            $.modal.alertWarning("\u8bf7\u9009\u62e9\u5458\u5de5");
             return;
         }
-        $("#queryUserId").val(userId);
-        $("#queryUserName").val(body.find("#selectedUserName").val());
-        $("#queryDeptId").val(body.find("#selectedDeptId").val());
-        $("#queryDeptName").val(body.find("#selectedDeptName").val());
+        fillQueryUser(rows[0]);
         $.modal.close(index);
     }
 
+    function fillQueryUser(row) {
+        var deptId = row.deptId || "";
+        var deptName = "";
+        if (row.dept) {
+            deptId = deptId || row.dept.deptId || "";
+            deptName = row.dept.deptName || "";
+        }
+        $("#queryUserId").val(row.userId || "");
+        $("#queryUserName").val(row.userName || "");
+        $("#queryDeptId").val(deptId);
+        $("#queryDeptName").val(deptName);
+    }
+
     function resetQuery() {
-        resetDate();
         $("#schedule-form")[0].reset();
         $("#queryUserId").val("");
         $("#queryDeptId").val("");
-        var now = new Date();
-        var m = now.getMonth() + 1;
-        $("#scheduleMonth").val(now.getFullYear() + "-" + (m < 10 ? "0" + m : m));
+        setCurrentMonth();
         $("#overwriteGenerate").prop("checked", true);
-        $.table.search();
+        $.table.search("schedule-form");
     }
 </script>
 </body>

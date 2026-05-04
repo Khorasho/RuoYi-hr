@@ -9,9 +9,7 @@
     <link href="../static/css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="../static/css/style.min.css" th:href="@{/css/style.min.css}" rel="stylesheet"/>
     <style>
-        .welcome-wrap {
-            padding: 20px;
-        }
+        .welcome-wrap { padding: 20px; }
         .hero {
             border-radius: 12px;
             padding: 24px;
@@ -20,15 +18,8 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
             margin-bottom: 20px;
         }
-        .hero h1 {
-            margin: 0 0 10px;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .hero .meta {
-            font-size: 15px;
-            opacity: .95;
-        }
+        .hero h1 { margin: 0 0 10px; font-size: 28px; font-weight: 600; }
+        .hero .meta { font-size: 15px; opacity: .95; }
         .card {
             background: #fff;
             border-radius: 10px;
@@ -37,30 +28,11 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             margin-bottom: 16px;
         }
-        .card h3 {
-            margin: 0 0 12px;
-            font-size: 16px;
-            color: #2f4050;
-            font-weight: 600;
-        }
-        .big-time {
-            font-size: 34px;
-            font-weight: 600;
-            color: #1ab394;
-            line-height: 1.2;
-        }
-        .quick-links a {
-            display: inline-block;
-            margin: 0 8px 8px 0;
-        }
-        .tips-list {
-            margin: 0;
-            padding-left: 16px;
-            color: #666;
-        }
-        .tips-list li {
-            margin-bottom: 6px;
-        }
+        .card h3 { margin: 0 0 12px; font-size: 16px; color: #2f4050; font-weight: 600; }
+        .big-time { font-size: 34px; font-weight: 600; color: #1ab394; line-height: 1.2; }
+        .quick-links a { display: inline-block; margin: 0 8px 8px 0; }
+        .tips-list { margin: 0; padding-left: 16px; color: #666; }
+        .tips-list li { margin-bottom: 6px; }
     </style>
 </head>
 <body class="gray-bg">
@@ -85,7 +57,7 @@
             <div class="card">
                 <h3><i class="fa fa-link"></i> 快捷入口</h3>
                 <div class="quick-links">
-                    <a class="btn btn-primary btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/employee')">组织与员工</a>
+                    <a class="btn btn-primary btn-sm" href="javascript:void(0)" onclick="openMenu('/system/user')">组织与员工</a>
                     <a class="btn btn-success btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/shift')">班次管理</a>
                     <a class="btn btn-warning btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/schedule')">排班管理</a>
                     <a class="btn btn-info btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/attendance')">考勤处理</a>
@@ -145,7 +117,7 @@
     function openMenu(url) {
         if (window.parent && window.parent.$ && window.parent.$.modal && window.parent.$.modal.openTab) {
             var titleMap = {
-                '/hr/employee': '组织与员工',
+                '/system/user': '组织与员工',
                 '/hr/shift': '班次管理',
                 '/hr/schedule': '排班管理',
                 '/hr/attendance': '考勤处理'

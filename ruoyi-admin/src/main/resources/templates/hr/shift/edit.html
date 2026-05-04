@@ -1,18 +1,19 @@
 <!DOCTYPE html>
-<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:include="include :: header('编辑班次')"/>
+    <th:block th:include="include :: header('edit shift')"/>
     <th:block th:include="include :: datetimepicker-css"/>
 </head>
-<body>
+<body class="white-bg">
 <div class="main-content">
     <form id="form-shift-edit" class="form-horizontal" th:object="${shift}">
-        <input type="hidden" id="shiftId" name="shiftId" th:field="*{shiftId}">
-        <h4 class="form-header h4">基础信息</h4>
+        <input type="hidden" id="shiftId" name="shiftId" th:field="*{shiftId}"/>
+
+        <h4 class="form-header h4">&#22522;&#30784;&#20449;&#24687;</h4>
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">班次名称：</label>
+                    <label class="col-sm-4 control-label is-required">&#29677;&#27425;&#21517;&#31216;&#65306;</label>
                     <div class="col-sm-8">
                         <input id="shiftName" name="shiftName" class="form-control" th:field="*{shiftName}" required>
                     </div>
@@ -20,10 +21,10 @@
             </div>
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">班次编码：</label>
+                    <label class="col-sm-4 control-label is-required">&#29677;&#27425;&#32534;&#30721;&#65306;</label>
                     <div class="col-sm-8">
                         <input id="shiftCode" name="shiftCode" class="form-control" th:field="*{shiftCode}" readonly required>
-                        <span class="help-block m-b-none"><i class="fa fa-info-circle"></i> 根据班次名称自动生成</span>
+                        <span class="help-block m-b-none"><i class="fa fa-info-circle"></i> &#26681;&#25454;&#29677;&#27425;&#21517;&#31216;&#33258;&#21160;&#29983;&#25104;</span>
                     </div>
                 </div>
             </div>
@@ -32,10 +33,10 @@
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label is-required">岗位选择：</label>
+                    <label class="col-sm-4 control-label is-required">&#23703;&#20301;&#36873;&#25321;&#65306;</label>
                     <div class="col-sm-8">
                         <div class="input-group">
-                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()" th:value="*{postType}" readonly required>
+                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()" readonly required>
                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
                         </div>
                         <input id="postType" name="postType" type="hidden" th:field="*{postType}"/>
@@ -44,7 +45,7 @@
             </div>
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label">状态：</label>
+                    <label class="col-sm-4 control-label">&#29366;&#24577;&#65306;</label>
                     <div class="col-sm-8">
                         <label class="toggle-switch switch-solid">
                             <input type="checkbox" id="status" th:checked="${shift.status == '0'}">
@@ -55,75 +56,75 @@
             </div>
         </div>
 
-        <h4 class="form-header h4">上班规则</h4>
+        <h4 class="form-header h4">&#19978;&#29677;&#35268;&#21017;</h4>
         <div class="row">
             <div class="col-sm-12">
                 <div class="form-group">
-                    <label class="col-sm-2 control-label is-required">每周上班日：</label>
+                    <label class="col-sm-2 control-label is-required">&#27599;&#21608;&#19978;&#29677;&#26085;&#65306;</label>
                     <div class="col-sm-10">
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0"> 周一</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1"> 周二</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2"> 周三</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3"> 周四</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4"> 周五</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="5"> 周六</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="6"> 周日</label>
-                        <input type="hidden" id="workdayMask" name="workdayMask" th:value="*{workdayMask}">
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0"> &#21608;&#19968;</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1"> &#21608;&#20108;</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2"> &#21608;&#19977;</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3"> &#21608;&#22235;</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4"> &#21608;&#20116;</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="5"> &#21608;&#20845;</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="6"> &#21608;&#26085;</label>
+                        <input type="hidden" id="workdayMask" name="workdayMask" th:value="${workdayMask}">
                     </div>
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-sm-offset-2 col-sm-10">
-                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('single')"><i class="fa fa-clone"></i> 单休模板(周日休)</a>
-                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('double')"><i class="fa fa-clone"></i> 双休模板(周六周日休)</a>
-                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('all')"><i class="fa fa-clone"></i> 全勤模板</a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('single')"><i class="fa fa-clone"></i> &#21333;&#20241;&#27169;&#26495;(&#21608;&#26085;&#20241;)</a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('double')"><i class="fa fa-clone"></i> &#21452;&#20241;&#27169;&#26495;(&#21608;&#20845;&#21608;&#26085;&#20241;)</a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="applyWorkdayTemplate('all')"><i class="fa fa-clone"></i> &#20840;&#21220;&#27169;&#26495;</a>
             </div>
         </div>
 
-        <h4 class="form-header h4">班次时段</h4>
+        <h4 class="form-header h4">&#29677;&#27425;&#26102;&#27573;</h4>
         <div class="row">
             <div class="col-sm-12">
                 <table class="table table-bordered" id="periodTable">
                     <thead>
                     <tr>
-                        <th style="width:80px;">序号</th>
-                        <th>开始时间</th>
-                        <th>结束时间</th>
-                        <th style="width:100px;">操作</th>
+                        <th style="width:80px;">&#24207;&#21495;</th>
+                        <th>&#24320;&#22987;&#26102;&#38388;</th>
+                        <th>&#32467;&#26463;&#26102;&#38388;</th>
+                        <th style="width:100px;">&#25805;&#20316;</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="p,st : ${periods}">
-                        <td class="text-center seq" th:text="${st.count}"></td>
-                        <td><input type="text" name="periodStart" class="form-control period-time" placeholder="HH:mm" th:value="${p.startTime}" required></td>
-                        <td><input type="text" name="periodEnd" class="form-control period-time" placeholder="HH:mm" th:value="${p.endTime}" required></td>
+                    <tr th:each="period, stat : ${periods}">
+                        <td class="text-center seq" th:text="${stat.count}"></td>
+                        <td><input type="text" name="periodStart" class="form-control period-time" placeholder="HH:mm" th:value="${period.startTime}" required></td>
+                        <td><input type="text" name="periodEnd" class="form-control period-time" placeholder="HH:mm" th:value="${period.endTime}" required></td>
                         <td class="text-center"><a href="javascript:void(0)" class="btn btn-danger btn-xs" onclick="removePeriodRow(this)"><i class="fa fa-remove"></i></a></td>
                     </tr>
                     </tbody>
                 </table>
-                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="addPeriodRow()"><i class="fa fa-plus"></i> 增加时段</a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="addPeriodRow()"><i class="fa fa-plus"></i> &#22686;&#21152;&#26102;&#27573;</a>
             </div>
         </div>
     </form>
 
-    <h4 class="form-header h4">班次员工</h4>
+    <h4 class="form-header h4">&#29677;&#27425;&#21592;&#24037;&#65288;&#25353;&#25490;&#29677;&#65289;</h4>
     <div class="row" style="margin-bottom: 8px;">
         <div class="col-sm-12">
-            <a class="btn btn-success btn-sm" href="javascript:void(0)" onclick="openSelectEmployee()"><i class="fa fa-plus"></i> 添加员工到本班次</a>
+            <a class="btn btn-success btn-sm" href="javascript:void(0)" onclick="openSelectEmployee()"><i class="fa fa-plus"></i> &#28155;&#21152;&#21592;&#24037;&#21040;&#26412;&#29677;&#27425;</a>
         </div>
     </div>
     <div class="row">
         <div class="col-sm-12 select-table table-striped">
-            <table id="shift-employee-table"></table>
+            <table id="bootstrap-table"></table>
         </div>
     </div>
 </div>
 
 <div class="row">
     <div class="col-sm-offset-5 col-sm-10">
-        <button type="button" class="btn btn-sm btn-primary" onclick="submitHandler()"><i class="fa fa-check"></i> 保存</button>&nbsp;
-        <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-reply-all"></i> 关闭</button>
+        <button type="button" class="btn btn-sm btn-primary" onclick="submitHandler()"><i class="fa fa-check"></i> &#30830;&#35748;</button>&nbsp;
+        <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-close"></i> &#20851;&#38381;</button>
     </div>
 </div>
 
@@ -137,76 +138,109 @@
         if ($("#periodTable tbody tr").length === 0) {
             addPeriodRow();
         }
+        initPostSelection();
         initTimePicker();
-        $("#shiftName").on("blur", function () { generateShiftCode(); });
-        $(".workday").on("change", function () {
-            buildWorkdayMask();
-        });
+        $("#shiftName").on("blur", generateShiftCode);
+        $(".workday").on("change", buildWorkdayMask);
         initWorkdayFromMask($("#workdayMask").val());
         $("#form-shift-edit").validate({
             onkeyup: false,
             focusCleanup: true,
-            rules: { shiftName: {required: true}, shiftCode: {required: true}, postType: {required: true} }
+            rules: {
+                shiftName: {required: true},
+                shiftCode: {required: true},
+                postType: {required: true}
+            }
         });
-
         initShiftEmployeeTable();
     });
 
     function initShiftEmployeeTable() {
-        $("#shift-employee-table").bootstrapTable({
-            url: prefix + "/employeeList/" + shiftId,
-            method: "post",
-            pagination: true,
-            sidePagination: "server",
-            pageSize: 10,
-            pageList: [10, 20, 50],
-            queryParams: function (params) {
-                return {
-                    pageSize: params.limit,
-                    pageNum: (params.offset / params.limit) + 1
-                };
-            },
-            columns: [
-                {field: "hrEmployeeId", title: "ID"},
-                {field: "employeeNo", title: "工号"},
-                {field: "userName", title: "姓名"},
-                {field: "deptName", title: "部门"},
-                {field: "jobType", title: "工种"},
-                {
-                    title: "操作",
-                    align: "center",
-                    formatter: function (value, row) {
-                        return '<a class="btn btn-danger btn-xs" href="javascript:void(0)" onclick="unbindEmployee(' + row.hrEmployeeId + ')"><i class="fa fa-remove"></i>移出班次</a>';
-                    }
+        var options = {
+            url: prefix + "/scheduleList/" + shiftId,
+            modalName: "\u6392\u73ed",
+            showSearch: false,
+            showRefresh: false,
+            showToggle: false,
+            showColumns: false,
+            sortName: "workDate",
+            sortOrder: "desc",
+            columns: [{
+                checkbox: true
+            }, {
+                field: "scheduleId",
+                title: "ID"
+            }, {
+                field: "userId",
+                title: "\u5458\u5de5ID"
+            }, {
+                field: "userName",
+                title: "\u59d3\u540d"
+            }, {
+                field: "deptName",
+                title: "\u90e8\u95e8"
+            }, {
+                field: "workDate",
+                title: "\u6392\u73ed\u65e5\u671f",
+                sortable: true
+            }, {
+                field: "shiftName",
+                title: "\u73ed\u6b21"
+            }, {
+                field: "restType",
+                title: "\u4f11\u606f\u7c7b\u578b",
+                formatter: function (value) {
+                    return formatRestType(value);
                 }
-            ]
-        });
+            }, {
+                field: "scheduleRemark",
+                title: "\u5907\u6ce8"
+            }, {
+                title: "\u64cd\u4f5c",
+                align: "center",
+                formatter: function (value, row) {
+                    return '<a class="btn btn-danger btn-xs" href="javascript:void(0)" onclick="unbindEmployee(' + row.userId + ')"><i class="fa fa-remove"></i>\u79fb\u51fa\u73ed\u6b21</a>';
+                }
+            }]
+        };
+        $.table.init(options);
+    }
+
+    function formatRestType(value) {
+        if ($.common.isEmpty(value)) {
+            return "\u6b63\u5e38\u51fa\u52e4";
+        }
+        if (value === "REST") {
+            return "\u4f11\u606f";
+        }
+        if (value === "HALF_REST") {
+            return "\u534a\u5929\u4f11";
+        }
+        return value;
     }
 
     function refreshShiftEmployeeTable() {
-        $("#shift-employee-table").bootstrapTable("refresh");
+        $.table.search();
     }
 
     function openSelectEmployee() {
-        var options = {
-            title: "选择员工",
+        $.modal.openOptions({
+            title: "\u9009\u62e9\u5458\u5de5",
             width: "1100",
             url: prefix + "/selectEmployee/" + shiftId,
             callBack: doSelectEmployeeSubmit
-        };
-        $.modal.openOptions(options);
+        });
     }
 
-    function doSelectEmployeeSubmit(index) {
-        var body = $.modal.getChildFrame(index);
-        var rows = body.find("#bootstrap-table").bootstrapTable("getSelections");
+    function doSelectEmployeeSubmit(index, layero) {
+        var rows = layero.find("iframe")[0].contentWindow.getSelections();
         if (!rows || rows.length === 0) {
-            $.modal.alertWarning("请至少选择一名员工");
+            $.modal.alertWarning("\u8bf7\u81f3\u5c11\u9009\u62e9\u4e00\u540d\u5458\u5de5");
             return;
         }
         var ids = [];
         for (var i = 0; i < rows.length; i++) {
-            ids.push(rows[i].hrEmployeeId);
+            ids.push(rows[i].userId);
         }
         assignEmployees(ids.join(","), false, index);
     }
@@ -223,7 +257,7 @@
             },
             success: function (res) {
                 if (res.code === 0) {
-                    $.modal.msgSuccess(res.msg || "添加成功");
+                    $.modal.msgSuccess(res.msg || "\u6dfb\u52a0\u6210\u529f");
                     if (layerIndex !== undefined) {
                         $.modal.close(layerIndex);
                     }
@@ -231,33 +265,33 @@
                     return;
                 }
                 if (res.conflict) {
-                    $.modal.confirm(res.msg || "存在班次冲突，是否覆盖？", function () {
+                    $.modal.confirm(res.msg || "\u5b58\u5728\u73ed\u6b21\u51b2\u7a81\uff0c\u662f\u5426\u8986\u76d6\uff1f", function () {
                         var conflictIds = res.conflictEmployeeIds || employeeIds;
                         assignEmployees(conflictIds, true, layerIndex);
                     });
                     return;
                 }
-                $.modal.alertError(res.msg || "添加失败");
+                $.modal.alertError(res.msg || "\u6dfb\u52a0\u5931\u8d25");
             }
         });
     }
 
-    function unbindEmployee(hrEmployeeId) {
-        $.modal.confirm("确认将该员工移出当前班次吗？", function () {
+    function unbindEmployee(userId) {
+        $.modal.confirm("\u786e\u8ba4\u5c06\u8be5\u5458\u5de5\u79fb\u51fa\u5f53\u524d\u73ed\u6b21\u5417\uff1f", function () {
             $.ajax({
                 url: prefix + "/unbindEmployee",
                 type: "post",
                 dataType: "json",
                 data: {
                     shiftId: shiftId,
-                    hrEmployeeId: hrEmployeeId
+                    userId: userId
                 },
                 success: function (res) {
                     if (res.code === 0) {
-                        $.modal.msgSuccess("已移出班次");
+                        $.modal.msgSuccess(res.msg || "\u5df2\u79fb\u51fa\u73ed\u6b21");
                         refreshShiftEmployeeTable();
                     } else {
-                        $.modal.alertError(res.msg || "操作失败");
+                        $.modal.alertError(res.msg || "\u64cd\u4f5c\u5931\u8d25");
                     }
                 }
             });
@@ -278,30 +312,43 @@
 
     function selectPostTree() {
         var postId = $("#postType").data("postId") || "0";
-        var url = prefix + "/selectPostTree/" + postId;
-        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
-        var options = {
-            title: "选择岗位",
+        $.modal.openOptions({
+            title: "\u9009\u62e9\u5c97\u4f4d",
             width: "380",
-            url: url,
-            btn: btn,
+            url: prefix + "/selectPostTree/" + postId,
+            btn: ['<i class="fa fa-check"></i> \u786e\u8ba4', '<i class="fa fa-trash-o"></i> \u6e05\u9664', '<i class="fa fa-close"></i> \u5173\u95ed'],
             btn2: function (index) {
                 $("#postType").val("").removeData("postId");
                 $("#postTypeName").val("");
                 $.modal.close(index);
             },
             callBack: doSelectPost
-        };
-        $.modal.openOptions(options);
+        });
     }
 
     function doSelectPost(index) {
         var body = $.modal.getChildFrame(index);
         var postId = body.find("#treeId").val();
         var postName = body.find("#treeName").val();
-        $("#postType").val(postName).data("postId", postId);
+        $("#postType").val(postId + "|" + postName).data("postId", postId);
         $("#postTypeName").val(postName);
         $.modal.close(index);
+    }
+
+    function initPostSelection() {
+        var val = $("#postType").val();
+        if ($.common.isEmpty(val)) {
+            return;
+        }
+        var idx = val.indexOf("|");
+        if (idx > -1) {
+            var postId = val.substring(0, idx);
+            var postName = val.substring(idx + 1);
+            $("#postType").data("postId", postId);
+            $("#postTypeName").val(postName);
+        } else {
+            $("#postTypeName").val(val);
+        }
     }
 
     function applyWorkdayTemplate(type) {
@@ -314,6 +361,7 @@
     }
 
     function initWorkdayFromMask(mask) {
+        mask = $.common.trim(mask || "").replace(/[^01]/g, "");
         if ($.common.isEmpty(mask) || mask.length !== 7) {
             mask = "1111100";
         }
@@ -322,7 +370,7 @@
 
     function setWorkdayByMask(mask) {
         $(".workday").each(function () {
-            var idx = parseInt($(this).attr("data-index"));
+            var idx = parseInt($(this).attr("data-index"), 10);
             $(this).prop("checked", mask.charAt(idx) === "1");
         });
         buildWorkdayMask();
@@ -373,16 +421,16 @@
     }
 
     function submitHandler() {
+        buildWorkdayMask();
         if (!$.validate.form()) {
             return;
         }
         if ($.common.isEmpty($("#postType").val())) {
-            $.modal.alertWarning("请选择岗位");
+            $.modal.alertWarning("\u8bf7\u9009\u62e9\u5c97\u4f4d");
             return;
         }
-        var status = $("#status").is(":checked") ? 0 : 1;
         var data = $("#form-shift-edit").serializeArray();
-        data.push({name: "status", value: status});
+        data.push({name: "status", value: $("#status").is(":checked") ? 0 : 1});
         data.push({name: "summerExtendEnabled", value: 0});
         data.push({name: "summerExtendMinutes", value: 30});
         $.operate.saveTab(prefix + "/edit", data);

@@ -39,7 +39,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectHrShiftById" parameterType="Long" resultMap="HrShiftResult">
-        select * from hr_shift where shift_id = #{shiftId}
+        select * from hr_shift where shift_id = #{shiftId} and del_flag = '0'
     </select>
 
     <insert id="insertHrShift" parameterType="HrShift" useGeneratedKeys="true" keyProperty="shiftId">
@@ -72,6 +72,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update hr_shift set del_flag = '2' where shift_id in
         <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
     </update>
+
+    <select id="countScheduleRefByShiftIds" parameterType="Long" resultType="int">
+        select count(1)
+        from hr_schedule
+        where shift_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
 
     <select id="countByShiftCode" resultType="int">
         select count(1)

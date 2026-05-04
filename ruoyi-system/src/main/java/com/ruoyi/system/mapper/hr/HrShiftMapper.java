@@ -12,6 +12,7 @@ public interface HrShiftMapper
     int insertHrShift(HrShift shift);
     int updateHrShift(HrShift shift);
     int deleteHrShiftByIds(Long[] ids);
+    int countScheduleRefByShiftIds(Long[] ids);
     int countByShiftCode(@Param("shiftCode") String shiftCode, @Param("excludeShiftId") Long excludeShiftId);
     List<HrShiftPeriod> selectPeriodsByShiftId(Long shiftId);
     int deletePeriodsByShiftId(Long shiftId);

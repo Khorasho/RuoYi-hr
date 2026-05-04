@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:include="include :: header('编辑排班')"/>
+    <th:block th:include="include :: header('修改排班')"/>
     <th:block th:include="include :: datetimepicker-css"/>
 </head>
-<body>
+<body class="white-bg">
 <div class="main-content">
     <form id="form-schedule-edit" class="form-horizontal" th:object="${schedule}">
-        <input name="scheduleId" type="hidden" th:field="*{scheduleId}">
+        <input type="hidden" name="scheduleId" th:field="*{scheduleId}"/>
         <input type="hidden" id="userId" name="userId" th:field="*{userId}"/>
         <input type="hidden" id="deptId" name="deptId" th:field="*{deptId}"/>
 
@@ -55,7 +55,9 @@
                     <div class="col-sm-8">
                         <select name="shiftId" class="form-control m-b">
                             <option value="">请选择班次</option>
-                            <option th:each="shift:${shifts}" th:value="${shift.shiftId}" th:selected="${schedule.shiftId == shift.shiftId}" th:text="${shift.shiftName + ' (' + shift.shiftCode + ')'}"></option>
+                            <option th:each="shift : ${shifts}" th:value="${shift.shiftId}"
+                                    th:selected="${schedule.shiftId != null and schedule.shiftId == shift.shiftId}"
+                                    th:text="${shift.shiftName + ' (' + shift.shiftCode + ')'}"></option>
                         </select>
                     </div>
                 </div>
@@ -83,7 +85,8 @@
                 <div class="form-group">
                     <label class="col-xs-2 control-label">备注：</label>
                     <div class="col-xs-10">
-                        <textarea name="scheduleRemark" maxlength="500" class="form-control" rows="3">[[*{scheduleRemark}]]</textarea>
+                        <textarea name="scheduleRemark" maxlength="500" class="form-control" rows="3"
+                                  th:text="*{scheduleRemark}"></textarea>
                     </div>
                 </div>
             </div>
@@ -118,13 +121,11 @@
 
     function selectDeptTree() {
         var deptId = $.common.isEmpty($("#deptId").val()) ? "100" : $("#deptId").val();
-        var url = prefix + "/selectDeptTree/" + deptId;
-        var btn = ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'];
-        var options = {
+        $.modal.openOptions({
             title: "选择部门",
             width: "380",
-            url: url,
-            btn: btn,
+            url: prefix + "/selectDeptTree/" + deptId,
+            btn: ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'],
             btn2: function (index) {
                 $("#deptId").val("");
                 $("#deptNameDisplay").val("");
@@ -133,8 +134,7 @@
                 $.modal.close(index);
             },
             callBack: doDeptSubmit
-        };
-        $.modal.openOptions(options);
+        });
     }
 
     function doDeptSubmit(index) {
@@ -147,32 +147,40 @@
     }
 
     function selectUser() {
-        var deptId = $("#deptId").val();
         var url = prefix + "/selectUser";
-        if (!$.common.isEmpty(deptId)) {
+        var deptId = $("#deptId").val();
+        if ($.common.isNotEmpty(deptId)) {
             url += "?deptId=" + deptId;
         }
-        var options = {
+        $.modal.openOptions({
             title: "选择员工",
             width: "1000",
             url: url,
             callBack: doUserSubmit
-        };
-        $.modal.openOptions(options);
+        });
     }
 
-    function doUserSubmit(index) {
-        var body = $.modal.getChildFrame(index);
-        var userId = body.find("#selectedUserId").val();
-        if ($.common.isEmpty(userId)) {
+    function doUserSubmit(index, layero) {
+        var rows = layero.find("iframe")[0].contentWindow.getSelections();
+        if (!rows || rows.length === 0) {
             $.modal.alertWarning("请选择员工");
             return;
         }
-        $("#userId").val(userId);
-        $("#userNameDisplay").val(body.find("#selectedUserName").val());
-        $("#deptId").val(body.find("#selectedDeptId").val());
-        $("#deptNameDisplay").val(body.find("#selectedDeptName").val());
+        fillUserInfo(rows[0]);
         $.modal.close(index);
+    }
+
+    function fillUserInfo(row) {
+        var deptId = row.deptId || "";
+        var deptName = "";
+        if (row.dept) {
+            deptId = deptId || row.dept.deptId || "";
+            deptName = row.dept.deptName || "";
+        }
+        $("#userId").val(row.userId || "");
+        $("#userNameDisplay").val(row.userName || "");
+        $("#deptId").val(deptId);
+        $("#deptNameDisplay").val(deptName);
     }
 
     function submitHandler() {

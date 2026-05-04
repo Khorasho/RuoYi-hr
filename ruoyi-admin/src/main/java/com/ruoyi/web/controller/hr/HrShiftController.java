@@ -1,11 +1,17 @@
 package com.ruoyi.web.controller.hr;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,17 +27,20 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.domain.Ztree;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.system.domain.SysPost;
-import com.ruoyi.system.domain.hr.HrEmployee;
+import com.ruoyi.system.domain.hr.HrSchedule;
 import com.ruoyi.system.domain.hr.HrShift;
 import com.ruoyi.system.domain.hr.HrShiftPeriod;
+import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.service.ISysPostService;
-import com.ruoyi.system.service.hr.IHrEmployeeService;
+import com.ruoyi.system.service.ISysUserService;
+import com.ruoyi.system.service.hr.IHrScheduleService;
 import com.ruoyi.system.service.hr.IHrShiftService;
 
 @Controller
@@ -45,9 +54,15 @@ public class HrShiftController extends BaseController
 
     @Autowired
     private ISysPostService postService;
-    
+
     @Autowired
-    private IHrEmployeeService employeeService;
+    private ISysUserService userService;
+
+    @Autowired
+    private IHrScheduleService scheduleService;
+
+    @Autowired
+    private SysUserMapper userMapper;
 
     @RequiresPermissions("hr:shift:view")
     @GetMapping()
@@ -83,7 +98,8 @@ public class HrShiftController extends BaseController
     @RequiresPermissions(value = { "hr:shift:add", "hr:shift:edit" }, logical = Logical.OR)
     @PostMapping("/generateCode")
     @ResponseBody
-    public AjaxResult generateCode(String shiftName, Long shiftId)
+    public AjaxResult generateCode(@RequestParam("shiftName") String shiftName,
+        @RequestParam(value = "shiftId", required = false) Long shiftId)
     {
         if (StringUtils.isEmpty(shiftName))
         {
@@ -98,13 +114,15 @@ public class HrShiftController extends BaseController
     @PostMapping("/add")
     @ResponseBody
     public AjaxResult addSave(HrShift shift,
-                              @RequestParam(value = "periodStart", required = false) String[] periodStart,
-                              @RequestParam(value = "periodEnd", required = false) String[] periodEnd)
+        @RequestParam(value = "periodStart", required = false) String[] periodStart,
+        @RequestParam(value = "periodEnd", required = false) String[] periodEnd,
+        @RequestParam(value = "workdayMask", required = false) String workdayMask)
     {
         if (StringUtils.isEmpty(shift.getPostType()))
         {
             return AjaxResult.error("请选择岗位");
         }
+        shift.setWorkdayMask(workdayMask);
         shift.setCreateBy(getLoginName());
         return toAjax(shiftService.insertHrShift(shift, buildPeriods(periodStart, periodEnd)));
     }
@@ -112,21 +130,17 @@ public class HrShiftController extends BaseController
     @GetMapping("/edit/{id}")
     public String edit(@PathVariable("id") Long id, ModelMap mmap)
     {
-        mmap.put("shift", shiftService.selectHrShiftById(id));
+        HrShift shift = shiftService.selectHrShiftById(id);
+        if (shift != null)
+        {
+            shift.setWorkdayMask(normalizeWorkdayMask(shift.getWorkdayMask()));
+        }
+        mmap.put("shift", shift);
+        mmap.put("workdayMask", shift != null ? shift.getWorkdayMask() : "1111100");
         mmap.put("periods", shiftService.selectPeriodsByShiftId(id));
         return prefix + "/edit";
     }
-    
-    @RequiresPermissions("hr:shift:view")
-    @PostMapping("/employeeList/{shiftId}")
-    @ResponseBody
-    public TableDataInfo employeeList(@PathVariable("shiftId") Long shiftId, HrEmployee query)
-    {
-        query.setDefaultShiftId(shiftId);
-        startPage();
-        return getDataTable(employeeService.selectHrEmployeeList(query));
-    }
-    
+
     @RequiresPermissions("hr:shift:edit")
     @GetMapping("/selectEmployee/{shiftId}")
     public String selectEmployee(@PathVariable("shiftId") Long shiftId, ModelMap mmap)
@@ -134,59 +148,136 @@ public class HrShiftController extends BaseController
         mmap.put("shiftId", shiftId);
         return prefix + "/selectEmployee";
     }
-    
+
+    @RequiresPermissions("hr:shift:view")
+    @PostMapping("/scheduleList/{shiftId}")
+    @ResponseBody
+    public TableDataInfo scheduleList(@PathVariable("shiftId") Long shiftId)
+    {
+        startPage();
+        return getDataTable(scheduleService.selectByShiftId(shiftId));
+    }
+
     @RequiresPermissions("hr:shift:edit")
     @PostMapping("/selectEmployee/list")
     @ResponseBody
-    public TableDataInfo selectEmployeeList(HrEmployee query)
+    public TableDataInfo selectEmployeeList(SysUser query)
     {
-        query.setWorkStatus("0");
-        query.setAttendEnabled("1");
+        if (StringUtils.isEmpty(query.getStatus()))
+        {
+            query.setStatus("0");
+        }
         startPage();
-        return getDataTable(employeeService.selectHrEmployeeList(query));
+        return getDataTable(userMapper.selectUserList(query));
     }
-    
+
     @RequiresPermissions("hr:shift:edit")
     @PostMapping("/assignEmployees")
     @ResponseBody
-    public AjaxResult assignEmployees(Long shiftId, String employeeIds, @RequestParam(defaultValue = "false") boolean overwrite)
+    public AjaxResult assignEmployees(@RequestParam("shiftId") Long shiftId,
+        @RequestParam("employeeIds") String employeeIds,
+        @RequestParam(defaultValue = "false") boolean overwrite)
     {
         if (shiftId == null)
         {
             return AjaxResult.error("参数错误：缺少班次ID");
         }
+        HrShift shift = shiftService.selectHrShiftById(shiftId);
+        if (shift == null)
+        {
+            return AjaxResult.error("班次不存在或已删除");
+        }
+
         Long[] ids = Convert.toLongArray(employeeIds);
         if (ids == null || ids.length == 0)
         {
             return AjaxResult.error("请先选择员工");
         }
-        List<HrEmployee> selected = employeeService.selectHrEmployeeByIds(ids);
-        List<HrEmployee> conflicts = selected.stream()
-            .filter(e -> e.getDefaultShiftId() != null && !shiftId.equals(e.getDefaultShiftId()))
-            .collect(Collectors.toList());
-        if (!overwrite && !conflicts.isEmpty())
+
+        Map<Long, SysUser> userMap = new HashMap<>();
+        for (Long userId : ids)
         {
-            String names = conflicts.stream().map(HrEmployee::getUserName).collect(Collectors.joining("、"));
-            String conflictIds = conflicts.stream().map(e -> String.valueOf(e.getHrEmployeeId())).collect(Collectors.joining(","));
-            return AjaxResult.error("以下员工已在其他班次：" + names + "。是否覆盖？")
-                .put("conflict", true)
-                .put("conflictEmployeeIds", conflictIds);
+            SysUser user = userService.selectUserById(userId);
+            if (user != null)
+            {
+                userMap.put(userId, user);
+            }
         }
-        int rows = employeeService.batchUpdateDefaultShift(shiftId, ids, getLoginName());
-        return AjaxResult.success("已添加 " + rows + " 名员工到当前班次");
+
+        LocalDate workDate = LocalDate.now();
+        Date scheduleDate = Date.from(workDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        List<String> conflictNames = new ArrayList<>();
+        List<String> conflictIds = new ArrayList<>();
+        Set<Long> skipIds = new HashSet<>();
+        for (Long userId : ids)
+        {
+            HrSchedule existing = getExistingScheduleByUserAndDate(userId, workDate);
+            if (existing == null)
+            {
+                continue;
+            }
+            if (shiftId.equals(existing.getShiftId()))
+            {
+                skipIds.add(userId);
+                continue;
+            }
+            if (!overwrite && existing.getShiftId() != null)
+            {
+                SysUser user = userMap.get(userId);
+                conflictNames.add(user != null ? user.getUserName() : String.valueOf(userId));
+                conflictIds.add(String.valueOf(userId));
+            }
+        }
+
+        if (!conflictNames.isEmpty())
+        {
+            return AjaxResult.error("以下员工当天已分配到其他班次：" + String.join("、", conflictNames) + "。是否覆盖？")
+                .put("conflict", true)
+                .put("conflictEmployeeIds", String.join(",", conflictIds));
+        }
+
+        int rows = 0;
+        for (Long userId : ids)
+        {
+            SysUser user = userMap.get(userId);
+            if (user == null)
+            {
+                continue;
+            }
+            if (!overwrite && skipIds.contains(userId))
+            {
+                continue;
+            }
+            HrSchedule schedule = new HrSchedule();
+            schedule.setUserId(userId);
+            schedule.setDeptId(user.getDeptId());
+            schedule.setWorkDate(scheduleDate);
+            schedule.setShiftId(shiftId);
+            schedule.setRestType("");
+            schedule.setScheduleRemark("班次管理手动分配");
+            schedule.setCreateBy(getLoginName());
+            rows += scheduleService.insertHrSchedule(schedule, overwrite);
+        }
+
+        String msg = "已添加 " + rows + " 名员工到当前班次";
+        if (!skipIds.isEmpty())
+        {
+            msg += "，已跳过 " + skipIds.size() + " 名已在当前班次中的员工";
+        }
+        return AjaxResult.success(msg);
     }
-    
+
     @RequiresPermissions("hr:shift:edit")
     @PostMapping("/unbindEmployee")
     @ResponseBody
-    public AjaxResult unbindEmployee(Long shiftId, Long hrEmployeeId)
+    public AjaxResult unbindEmployee(@RequestParam("shiftId") Long shiftId, @RequestParam("userId") Long userId)
     {
-        if (shiftId == null || hrEmployeeId == null)
+        if (shiftId == null || userId == null)
         {
             return AjaxResult.error("参数错误");
         }
-        int rows = employeeService.clearDefaultShiftByIds(shiftId, new Long[]{hrEmployeeId}, getLoginName());
-        return rows > 0 ? AjaxResult.success() : AjaxResult.error("解绑失败，员工可能已不在该班次");
+        int rows = scheduleService.deleteByShiftAndUser(shiftId, userId);
+        return rows > 0 ? AjaxResult.success("已移出班次") : AjaxResult.error("移除失败，员工可能已不在当前班次");
     }
 
     @RequiresPermissions("hr:shift:edit")
@@ -194,8 +285,9 @@ public class HrShiftController extends BaseController
     @PostMapping("/edit")
     @ResponseBody
     public AjaxResult editSave(HrShift shift,
-                               @RequestParam(value = "periodStart", required = false) String[] periodStart,
-                               @RequestParam(value = "periodEnd", required = false) String[] periodEnd)
+        @RequestParam(value = "periodStart", required = false) String[] periodStart,
+        @RequestParam(value = "periodEnd", required = false) String[] periodEnd,
+        @RequestParam(value = "workdayMask", required = false) String workdayMask)
     {
         if (shift.getShiftId() == null)
         {
@@ -205,6 +297,7 @@ public class HrShiftController extends BaseController
         {
             return AjaxResult.error("请选择岗位");
         }
+        shift.setWorkdayMask(workdayMask);
         shift.setUpdateBy(getLoginName());
         return toAjax(shiftService.updateHrShift(shift, buildPeriods(periodStart, periodEnd)));
     }
@@ -213,16 +306,16 @@ public class HrShiftController extends BaseController
     @Log(title = "HR班次", businessType = BusinessType.DELETE)
     @PostMapping("/remove")
     @ResponseBody
-    public AjaxResult remove(String ids)
+    public AjaxResult remove(@RequestParam("ids") String ids)
     {
         return toAjax(shiftService.deleteHrShiftByIds(ids));
     }
 
     @RequiresPermissions(value = { "hr:shift:list", "hr:shift:add", "hr:shift:edit" }, logical = Logical.OR)
-    @GetMapping("/selectPostTree/{deptId}")
-    public String selectPostTree(@PathVariable("deptId") Long deptId, ModelMap mmap)
+    @GetMapping("/selectPostTree/{postId}")
+    public String selectPostTree(@PathVariable("postId") Long postId, ModelMap mmap)
     {
-        mmap.put("treeId", deptId);
+        mmap.put("treeId", postId);
         mmap.put("treeName", "");
         return prefix + "/postTree";
     }
@@ -260,7 +353,7 @@ public class HrShiftController extends BaseController
         int len = Math.min(startArray.length, endArray.length);
         for (int i = 0; i < len; i++)
         {
-            if (startArray[i] == null || startArray[i].isBlank() || endArray[i] == null || endArray[i].isBlank())
+            if (StringUtils.isEmpty(startArray[i]) || StringUtils.isEmpty(endArray[i]))
             {
                 continue;
             }
@@ -273,19 +366,34 @@ public class HrShiftController extends BaseController
         return list;
     }
 
-    private LocalTime parseTime(String val)
+    private LocalTime parseTime(String value)
     {
-        if (val == null || val.isBlank())
+        if (StringUtils.isEmpty(value))
         {
             return null;
         }
         try
         {
-            return LocalTime.parse(val);
+            return LocalTime.parse(value);
         }
-        catch (DateTimeParseException e)
+        catch (DateTimeParseException ex)
         {
-            return LocalTime.parse(val, DateTimeFormatter.ofPattern("HH:mm"));
+            return LocalTime.parse(value, DateTimeFormatter.ofPattern("HH:mm"));
         }
+    }
+
+    private String normalizeWorkdayMask(String mask)
+    {
+        if (mask == null)
+        {
+            return "1111100";
+        }
+        String cleaned = mask.replaceAll("[^01]", "");
+        return cleaned.length() == 7 ? cleaned : "1111100";
+    }
+
+    private HrSchedule getExistingScheduleByUserAndDate(Long userId, LocalDate workDate)
+    {
+        return scheduleService.selectByUserAndDate(userId, workDate);
     }
 }

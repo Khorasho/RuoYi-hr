@@ -55,7 +55,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="userId != null">user_id = #{userId},</if>
             <if test="deptId != null">dept_id = #{deptId},</if>
             <if test="workDate != null">work_date = #{workDate},</if>
-            <if test="shiftId != null">shift_id = #{shiftId},</if>
+            shift_id = #{shiftId},
             <if test="restType != null">rest_type = #{restType},</if>
             <if test="scheduleRemark != null">schedule_remark = #{scheduleRemark},</if>
             update_by = #{updateBy},
@@ -70,11 +70,29 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <delete id="deleteByUserAndDate">
-        delete from hr_schedule where user_id = #{arg0} and work_date = #{arg1}
+        delete from hr_schedule where user_id = #{userId} and work_date = #{workDate}
     </delete>
     
     <select id="countByUserAndDate" resultType="int">
-        select count(1) from hr_schedule where user_id = #{arg0} and work_date = #{arg1}
+        select count(1) from hr_schedule where user_id = #{userId} and work_date = #{workDate}
+    </select>
+
+    <select id="selectWorkDatesByUserAndRange" resultType="java.time.LocalDate">
+        select work_date
+        from hr_schedule
+        where user_id = #{userId}
+          and work_date &gt;= #{startDate}
+          and work_date &lt;= #{endDate}
+    </select>
+
+    <select id="selectLatestShiftIdBeforeDate" resultType="java.lang.Long">
+        select shift_id
+        from hr_schedule
+        where user_id = #{userId}
+          and shift_id is not null
+          and work_date &lt; #{workDate}
+        order by work_date desc
+        limit 1
     </select>
 
     <select id="selectByDate" resultMap="HrScheduleResult" parameterType="java.time.LocalDate">
@@ -86,4 +104,33 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join hr_shift sh on sh.shift_id = s.shift_id
         where s.work_date = #{workDate}
     </select>
+
+    <select id="selectByUserAndDate" resultMap="HrScheduleResult">
+        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
+        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
+        from hr_schedule s
+        left join sys_user u on u.user_id = s.user_id
+        left join sys_dept d on d.dept_id = s.dept_id
+        left join hr_shift sh on sh.shift_id = s.shift_id
+        where s.user_id = #{userId}
+          and s.work_date = #{workDate}
+        limit 1
+    </select>
+
+    <select id="selectByShiftId" resultMap="HrScheduleResult" parameterType="Long">
+        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
+        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
+        from hr_schedule s
+        left join sys_user u on u.user_id = s.user_id
+        left join sys_dept d on d.dept_id = s.dept_id
+        left join hr_shift sh on sh.shift_id = s.shift_id
+        where s.shift_id = #{shiftId}
+        order by s.work_date desc, s.user_id asc
+    </select>
+
+    <delete id="deleteByShiftAndUser">
+        delete from hr_schedule
+        where shift_id = #{shiftId}
+          and user_id = #{userId}
+    </delete>
 </mapper>

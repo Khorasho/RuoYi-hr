@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:include="include :: header('select user')"/>
+    <th:block th:include="include :: header('select employee')"/>
 </head>
 <body class="gray-bg">
 <div class="container-div">
     <div class="row">
         <div class="col-sm-12 search-collapse">
-            <form id="select-user-form">
-                <input type="hidden" id="deptId" name="deptId" th:value="${deptId}"/>
+            <form id="select-employee-form">
                 <input type="hidden" name="status" value="0"/>
                 <div class="select-list">
                     <ul>
@@ -25,7 +24,7 @@
                             <input type="text" name="phonenumber"/>
                         </li>
                         <li>
-                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('select-user-form')">
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('select-employee-form')">
                                 <i class="fa fa-search"></i>&nbsp;&#25628;&#32034;
                             </a>
                             <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
@@ -45,19 +44,17 @@
 
 <th:block th:include="include :: footer"/>
 <script>
-    var prefix = ctx + "hr/schedule";
-    var initialDeptId = $("#deptId").val();
+    var prefix = ctx + "hr/shift";
 
     $(function () {
         var options = {
-            url: prefix + "/userList",
-            formId: "select-user-form",
+            url: prefix + "/selectEmployee/list",
+            formId: "select-employee-form",
             showSearch: false,
             showRefresh: false,
             showToggle: false,
             showColumns: false,
             clickToSelect: true,
-            singleSelect: true,
             columns: [{
                 checkbox: true
             }, {
@@ -88,9 +85,8 @@
     }
 
     function resetQuery() {
-        $("#select-user-form")[0].reset();
-        $("#deptId").val(initialDeptId);
-        $.table.search("select-user-form");
+        $("#select-employee-form")[0].reset();
+        $.table.search("select-employee-form");
     }
 </script>
 </body>

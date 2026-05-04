@@ -7,6 +7,7 @@ import java.util.Locale;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.system.domain.hr.HrShift;
 import com.ruoyi.system.domain.hr.HrShiftPeriod;
@@ -56,8 +57,13 @@ public class HrShiftServiceImpl implements IHrShiftService
     public int insertHrShift(HrShift shift, List<HrShiftPeriod> periods)
     {
         fillDefaultWorkdayMask(shift);
+        validatePeriods(periods);
         buildExpectedRange(shift, periods);
         int rows = shiftMapper.insertHrShift(shift);
+        if (rows <= 0)
+        {
+            throw new ServiceException("新增班次失败");
+        }
         savePeriods(shift.getShiftId(), shift.getCreateBy(), periods);
         return rows;
     }
@@ -67,8 +73,13 @@ public class HrShiftServiceImpl implements IHrShiftService
     public int updateHrShift(HrShift shift, List<HrShiftPeriod> periods)
     {
         fillDefaultWorkdayMask(shift);
+        validatePeriods(periods);
         buildExpectedRange(shift, periods);
         int rows = shiftMapper.updateHrShift(shift);
+        if (rows <= 0)
+        {
+            throw new ServiceException("修改班次失败：记录不存在或已删除");
+        }
         shiftMapper.deletePeriodsByShiftId(shift.getShiftId());
         savePeriods(shift.getShiftId(), shift.getUpdateBy(), periods);
         return rows;
@@ -77,7 +88,17 @@ public class HrShiftServiceImpl implements IHrShiftService
     @Override
     public int deleteHrShiftByIds(String ids)
     {
-        return shiftMapper.deleteHrShiftByIds(Convert.toLongArray(ids));
+        Long[] shiftIds = Convert.toLongArray(ids);
+        if (shiftIds == null || shiftIds.length == 0)
+        {
+            return 0;
+        }
+        int refCount = shiftMapper.countScheduleRefByShiftIds(shiftIds);
+        if (refCount > 0)
+        {
+            throw new ServiceException("删除失败：存在员工仍绑定该班次，请先在班次员工中移除后再删除");
+        }
+        return shiftMapper.deleteHrShiftByIds(shiftIds);
     }
 
     private void savePeriods(Long shiftId, String operator, List<HrShiftPeriod> periods)
@@ -107,6 +128,8 @@ public class HrShiftServiceImpl implements IHrShiftService
     {
         if (periods == null || periods.isEmpty())
         {
+            shift.setExpectedStartTime(null);
+            shift.setExpectedEndTime(null);
             return;
         }
         LocalTime min = null;
@@ -124,6 +147,25 @@ public class HrShiftServiceImpl implements IHrShiftService
         }
         shift.setExpectedStartTime(min);
         shift.setExpectedEndTime(max);
+    }
+
+    private void validatePeriods(List<HrShiftPeriod> periods)
+    {
+        if (periods == null || periods.isEmpty())
+        {
+            throw new ServiceException("请至少配置一个班次时段");
+        }
+        for (HrShiftPeriod period : periods)
+        {
+            if (period.getStartTime() == null || period.getEndTime() == null)
+            {
+                throw new ServiceException("班次时段开始/结束时间不能为空");
+            }
+            if (!period.getEndTime().isAfter(period.getStartTime()))
+            {
+                throw new ServiceException("班次时段结束时间必须晚于开始时间");
+            }
+        }
     }
 
     private String toCodeBase(String shiftName)

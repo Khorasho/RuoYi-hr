@@ -4,14 +4,20 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.text.Convert;
-import com.ruoyi.system.domain.hr.HrEmployee;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.hr.HrSchedule;
 import com.ruoyi.system.domain.hr.HrShift;
-import com.ruoyi.system.mapper.hr.HrEmployeeMapper;
+import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.hr.HrScheduleMapper;
 import com.ruoyi.system.mapper.hr.HrShiftMapper;
 import com.ruoyi.system.service.hr.IHrScheduleService;
@@ -21,10 +27,10 @@ public class HrScheduleServiceImpl implements IHrScheduleService
 {
     @Autowired
     private HrScheduleMapper scheduleMapper;
-    
+
     @Autowired
-    private HrEmployeeMapper employeeMapper;
-    
+    private SysUserMapper userMapper;
+
     @Autowired
     private HrShiftMapper shiftMapper;
 
@@ -41,12 +47,20 @@ public class HrScheduleServiceImpl implements IHrScheduleService
     }
 
     @Override
+    @Transactional
     public int insertHrSchedule(HrSchedule schedule, boolean overwrite)
     {
-        if (overwrite && schedule.getUserId() != null && schedule.getWorkDate() != null)
+        if (schedule.getUserId() != null && schedule.getWorkDate() != null)
         {
             LocalDate workDate = schedule.getWorkDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-            scheduleMapper.deleteByUserAndDate(schedule.getUserId(), workDate);
+            if (overwrite)
+            {
+                scheduleMapper.deleteByUserAndDate(schedule.getUserId(), workDate);
+            }
+            else if (scheduleMapper.countByUserAndDate(schedule.getUserId(), workDate) > 0)
+            {
+                throw new ServiceException("保存失败：该员工在 " + workDate + " 已存在排班，请使用覆盖保存");
+            }
         }
         return scheduleMapper.insertHrSchedule(schedule);
     }
@@ -62,56 +76,111 @@ public class HrScheduleServiceImpl implements IHrScheduleService
     {
         return scheduleMapper.deleteHrScheduleByIds(Convert.toLongArray(ids));
     }
-    
+
     @Override
+    public HrSchedule selectByUserAndDate(Long userId, LocalDate workDate)
+    {
+        if (userId == null || workDate == null)
+        {
+            return null;
+        }
+        return scheduleMapper.selectByUserAndDate(userId, workDate);
+    }
+
+    @Override
+    public List<HrSchedule> selectByShiftId(Long shiftId)
+    {
+        return scheduleMapper.selectByShiftId(shiftId);
+    }
+
+    @Override
+    public int deleteByShiftAndUser(Long shiftId, Long userId)
+    {
+        return scheduleMapper.deleteByShiftAndUser(shiftId, userId);
+    }
+
+    @Override
+    @Transactional
     public int generateMonthlySchedule(String month, Long deptId, Long userId, boolean overwrite, String operator)
     {
         YearMonth ym = YearMonth.parse(month);
-        HrEmployee query = new HrEmployee();
-        query.setDeptId(deptId);
-        query.setUserId(userId);
-        query.setWorkStatus("0");
-        query.setAttendEnabled("1");
-        List<HrEmployee> employees = employeeMapper.selectHrEmployeeList(query);
-        int generated = 0;
-        for (HrEmployee employee : employees)
+        LocalDate monthStart = ym.atDay(1);
+        LocalDate monthEnd = ym.atEndOfMonth();
+
+        List<SysUser> users;
+        if (userId != null)
         {
-            if (employee.getDefaultShiftId() == null)
+            SysUser one = userMapper.selectUserById(userId);
+            if (one == null)
+            {
+                return 0;
+            }
+            if (deptId != null && !deptId.equals(one.getDeptId()))
+            {
+                return 0;
+            }
+            if (!"0".equals(one.getStatus()))
+            {
+                return 0;
+            }
+            users = java.util.Collections.singletonList(one);
+        }
+        else
+        {
+            SysUser query = new SysUser();
+            query.setDeptId(deptId);
+            query.setStatus("0");
+            users = userMapper.selectUserList(query);
+        }
+
+        Map<Long, HrShift> shiftCache = new HashMap<>();
+        int generated = 0;
+        for (SysUser user : users)
+        {
+            Long defaultShiftId = scheduleMapper.selectLatestShiftIdBeforeDate(user.getUserId(), monthStart);
+            if (defaultShiftId == null)
             {
                 continue;
             }
-            HrShift shift = shiftMapper.selectHrShiftById(employee.getDefaultShiftId());
-            if (shift == null)
+            HrShift shift = shiftCache.computeIfAbsent(defaultShiftId, id -> shiftMapper.selectHrShiftById(id));
+            if (shift == null || !"0".equals(shift.getStatus()))
             {
                 continue;
             }
+
             String mask = normalizeWorkdayMask(shift.getWorkdayMask());
+            Set<LocalDate> existingDates = overwrite
+                ? new HashSet<>()
+                : new HashSet<>(scheduleMapper.selectWorkDatesByUserAndRange(user.getUserId(), monthStart, monthEnd));
+
             for (int day = 1; day <= ym.lengthOfMonth(); day++)
             {
                 LocalDate localDate = ym.atDay(day);
                 if (overwrite)
                 {
-                    scheduleMapper.deleteByUserAndDate(employee.getUserId(), localDate);
+                    scheduleMapper.deleteByUserAndDate(user.getUserId(), localDate);
                 }
-                else if (scheduleMapper.countByUserAndDate(employee.getUserId(), localDate) > 0)
+                else if (existingDates.contains(localDate))
                 {
                     continue;
                 }
+
                 boolean workday = isWorkday(mask, localDate);
                 HrSchedule schedule = new HrSchedule();
-                schedule.setUserId(employee.getUserId());
-                schedule.setDeptId(employee.getDeptId());
+                schedule.setUserId(user.getUserId());
+                schedule.setDeptId(user.getDeptId());
                 schedule.setWorkDate(Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant()));
                 schedule.setShiftId(workday ? shift.getShiftId() : null);
                 schedule.setRestType(workday ? "" : "REST");
                 schedule.setScheduleRemark("月排班生成(" + month + ")");
                 schedule.setCreateBy(operator);
                 generated += scheduleMapper.insertHrSchedule(schedule);
+                existingDates.add(localDate);
             }
         }
         return generated;
     }
-    
+
     private String normalizeWorkdayMask(String mask)
     {
         if (mask == null)
@@ -125,10 +194,10 @@ public class HrScheduleServiceImpl implements IHrScheduleService
         }
         return "1111100";
     }
-    
+
     private boolean isWorkday(String mask, LocalDate date)
     {
-        int index = date.getDayOfWeek().getValue() - 1; // Monday=0 ... Sunday=6
+        int index = date.getDayOfWeek().getValue() - 1;
         return mask.charAt(index) == '1';
     }
 }
