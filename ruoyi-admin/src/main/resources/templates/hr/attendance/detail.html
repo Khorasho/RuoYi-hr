@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org"
+      th:with="attendanceStatusList=${@dict.getType('hr_attendance_status')},
+               exceptionTypeList=${@dict.getType('hr_exception_type')},
+               sourceTypeList=${@dict.getType('hr_attendance_source')},
+               recordStatusList=${@dict.getType('hr_record_status')}">
+<head>
+    <th:block th:include="include :: header('考勤明细查看')"/>
+</head>
+<body class="white-bg">
+<div class="main-content">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong>基础信息</strong>
+            <div class="pull-right">
+                <a class="btn btn-xs btn-default" href="javascript:void(0)"
+                   th:onclick="|openPunchRecords('${result.userId}','${result.loginName}','${result.userName}','${result.workDate}')|">
+                    <i class="fa fa-list"></i> 查看当天打卡记录
+                </a>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-sm-3"><strong>工号：</strong><span th:text="${result.loginName}">-</span></div>
+                <div class="col-sm-3"><strong>姓名：</strong><span th:text="${result.userName}">-</span></div>
+                <div class="col-sm-3"><strong>部门：</strong><span th:text="${result.deptName}">-</span></div>
+                <div class="col-sm-3"><strong>日期：</strong><span th:text="${result.workDate}">-</span></div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-3"><strong>班次：</strong><span th:text="${result.shiftName}">-</span></div>
+                <div class="col-sm-3"><strong>考勤状态：</strong><span th:text="${@dict.getLabel('hr_attendance_status', result.attendanceStatus)}">-</span></div>
+                <div class="col-sm-3"><strong>异常类型：</strong><span th:text="${T(com.ruoyi.common.utils.DictUtils).getDictLabel('hr_exception_type', result.exceptionType, ',')}">-</span></div>
+                <div class="col-sm-3"><strong>打卡次数：</strong><span th:text="${result.punchCount}">0</span></div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-6"><strong>应出勤：</strong><span th:text="${result.expectedInTime}">-</span> 至 <span th:text="${result.expectedOutTime}">-</span></div>
+                <div class="col-sm-6"><strong>实际出勤：</strong><span th:text="${result.actualInTime}">-</span> 至 <span th:text="${result.actualOutTime}">-</span></div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-sm-12"><strong>备注：</strong><span th:text="${result.remark}">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>班段结果</strong></div>
+        <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>班段</th>
+                        <th>计划上班</th>
+                        <th>计划下班</th>
+                        <th>有效开始</th>
+                        <th>有效结束</th>
+                        <th>实际上班</th>
+                        <th>实际下班</th>
+                        <th>打卡次数</th>
+                        <th>班段状态</th>
+                        <th>备注</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(segments)}">
+                        <td colspan="11" class="text-center">暂无班段结果</td>
+                    </tr>
+                    <tr th:each="segment : ${segments}">
+                        <td th:text="${segment.segmentNo}"></td>
+                        <td th:text="${segment.segmentName}"></td>
+                        <td th:text="${segment.planInTime}"></td>
+                        <td th:text="${segment.planOutTime}"></td>
+                        <td th:text="${segment.validBeginTime}"></td>
+                        <td th:text="${segment.validEndTime}"></td>
+                        <td th:text="${segment.actualInTime}"></td>
+                        <td th:text="${segment.actualOutTime}"></td>
+                        <td th:text="${segment.punchCount}"></td>
+                        <td th:text="${@dict.getLabel('hr_attendance_status', segment.segmentStatus)}"></td>
+                        <td th:text="${segment.remark}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>当天原始打卡</strong></div>
+        <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                    <tr>
+                        <th>打卡时间</th>
+                        <th>打卡类型</th>
+                        <th>数据来源</th>
+                        <th>设备区域</th>
+                        <th>设备名称</th>
+                        <th>记录状态</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(records)}">
+                        <td colspan="6" class="text-center">当天没有原始打卡</td>
+                    </tr>
+                    <tr th:each="record : ${records}">
+                        <td th:text="${record.punchTime}"></td>
+                        <td th:text="${@dict.getLabel('hr_punch_type', record.punchType)}"></td>
+                        <td th:text="${@dict.getLabel('hr_attendance_source', record.sourceType)}"></td>
+                        <td th:text="${record.deviceArea}"></td>
+                        <td th:text="${record.deviceName}"></td>
+                        <td th:text="${@dict.getLabel('hr_record_status', record.recordStatus)}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<th:block th:include="include :: footer"/>
+<script>
+    function openPunchRecords(userId, loginName, userName, workDate) {
+        var beginTime = workDate + ' 00:00:00';
+        var endTime = workDate + ' 23:59:59';
+        var url = ctx + 'hr/attendanceRecord?userId=' + encodeURIComponent(userId || '')
+            + '&loginName=' + encodeURIComponent(loginName || '')
+            + '&userName=' + encodeURIComponent(userName || '')
+            + '&beginTime=' + encodeURIComponent(beginTime)
+            + '&endTime=' + encodeURIComponent(endTime);
+        $.modal.openTab('考勤打卡记录', url);
+    }
+</script>
+</body>
+</html>

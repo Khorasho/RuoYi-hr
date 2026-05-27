@@ -9,44 +9,108 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="shiftName" column="shift_name"/>
         <result property="postType" column="post_type"/>
         <result property="workdayMask" column="workday_mask"/>
+        <result property="scheduleMode" column="schedule_mode"/>
+        <result property="rotationWorkDays" column="rotation_work_days"/>
+        <result property="rotationRestDays" column="rotation_rest_days"/>
+        <result property="isRestShift" column="is_rest_shift"/>
         <result property="summerExtendEnabled" column="summer_extend_enabled"/>
         <result property="summerExtendMinutes" column="summer_extend_minutes"/>
         <result property="expectedStartTime" column="expected_start_time"/>
         <result property="expectedEndTime" column="expected_end_time"/>
         <result property="status" column="status"/>
         <result property="delFlag" column="del_flag"/>
+        <result property="remark" column="remark"/>
+        <result property="periodCount" column="period_count"/>
+        <result property="punchCount" column="punch_count"/>
+        <result property="periodSummary" column="period_summary"/>
     </resultMap>
 
     <resultMap type="HrShiftPeriod" id="HrShiftPeriodResult">
         <id property="periodId" column="period_id"/>
         <result property="shiftId" column="shift_id"/>
         <result property="periodNo" column="period_no"/>
+        <result property="segmentName" column="segment_name"/>
         <result property="startTime" column="start_time"/>
         <result property="endTime" column="end_time"/>
+        <result property="validBeginTime" column="valid_begin_time"/>
+        <result property="validEndTime" column="valid_end_time"/>
+        <result property="needInPunch" column="need_in_punch"/>
+        <result property="needOutPunch" column="need_out_punch"/>
+        <result property="crossDay" column="cross_day"/>
+        <result property="segmentRemark" column="segment_remark"/>
     </resultMap>
 
+    <sql id="selectShiftColumns">
+        select s.*,
+               coalesce(p.period_count, 0) as period_count,
+               coalesce(p.punch_count, 0) as punch_count,
+               p.period_summary
+        from hr_shift s
+        left join (
+            select shift_id,
+                   count(1) as period_count,
+                   sum((case when ifnull(need_in_punch, '1') = '1' then 1 else 0 end)
+                     + (case when ifnull(need_out_punch, '1') = '1' then 1 else 0 end)) as punch_count,
+                   group_concat(
+                       concat(
+                           ifnull(segment_name, concat('SEG', period_no)),
+                           ': ',
+                           date_format(start_time, '%H:%i'),
+                           '-',
+                           date_format(end_time, '%H:%i'),
+                           case when ifnull(cross_day, '0') = '1' then ' (+1)' else '' end
+                       )
+                       order by period_no separator '; '
+                   ) as period_summary
+            from hr_shift_period
+            group by shift_id
+        ) p on p.shift_id = s.shift_id
+    </sql>
+
     <select id="selectHrShiftList" parameterType="HrShift" resultMap="HrShiftResult">
-        select * from hr_shift
+        <include refid="selectShiftColumns"/>
         <where>
-            del_flag = '0'
-            <if test="shiftCode != null and shiftCode != ''">and shift_code like concat('%',#{shiftCode},'%')</if>
-            <if test="shiftName != null and shiftName != ''">and shift_name like concat('%',#{shiftName},'%')</if>
-            <if test="postType != null and postType != ''">and post_type like concat('%',#{postType},'%')</if>
-            <if test="workdayMask != null and workdayMask != ''">and workday_mask = #{workdayMask}</if>
-            <if test="status != null and status != ''">and status = #{status}</if>
+            s.del_flag = '0'
+            <if test="shiftCode != null and shiftCode != ''">and s.shift_code like concat('%', #{shiftCode}, '%')</if>
+            <if test="shiftName != null and shiftName != ''">and s.shift_name like concat('%', #{shiftName}, '%')</if>
+            <if test="postType != null and postType != ''">and s.post_type like concat('%', #{postType}, '%')</if>
+            <if test="workdayMask != null and workdayMask != ''">and s.workday_mask = #{workdayMask}</if>
+            <if test="scheduleMode != null and scheduleMode != ''">and s.schedule_mode = #{scheduleMode}</if>
+            <if test="isRestShift != null and isRestShift != ''">and s.is_rest_shift = #{isRestShift}</if>
+            <if test="status != null and status != ''">and s.status = #{status}</if>
         </where>
-        order by shift_id desc
+        order by s.shift_id desc
     </select>
 
     <select id="selectHrShiftById" parameterType="Long" resultMap="HrShiftResult">
-        select * from hr_shift where shift_id = #{shiftId} and del_flag = '0'
+        <include refid="selectShiftColumns"/>
+        where s.shift_id = #{shiftId} and s.del_flag = '0'
+    </select>
+
+    <select id="selectByShiftCode" resultMap="HrShiftResult">
+        <include refid="selectShiftColumns"/>
+        where s.shift_code = #{shiftCode} and s.del_flag = '0' limit 1
+    </select>
+
+    <select id="selectRestShift" resultMap="HrShiftResult">
+        <include refid="selectShiftColumns"/>
+        where s.del_flag = '0'
+          and (s.is_rest_shift = '1' or s.shift_code = 'SHIFT_REST')
+        order by s.is_rest_shift desc, s.shift_id asc
+        limit 1
     </select>
 
     <insert id="insertHrShift" parameterType="HrShift" useGeneratedKeys="true" keyProperty="shiftId">
-        insert into hr_shift(shift_code, shift_name, post_type, workday_mask, summer_extend_enabled, summer_extend_minutes,
-        expected_start_time, expected_end_time, status, del_flag, remark, create_by, create_time)
-        values(#{shiftCode}, #{shiftName}, #{postType}, #{workdayMask}, #{summerExtendEnabled}, #{summerExtendMinutes},
-        #{expectedStartTime}, #{expectedEndTime}, #{status}, '0', #{remark}, #{createBy}, sysdate())
+        insert into hr_shift(
+            shift_code, shift_name, post_type, workday_mask, schedule_mode, rotation_work_days, rotation_rest_days, is_rest_shift,
+            summer_extend_enabled, summer_extend_minutes, expected_start_time, expected_end_time,
+            status, del_flag, remark, create_by, create_time
+        )
+        values(
+            #{shiftCode}, #{shiftName}, #{postType}, #{workdayMask}, #{scheduleMode}, #{rotationWorkDays}, #{rotationRestDays}, #{isRestShift},
+            #{summerExtendEnabled}, #{summerExtendMinutes}, #{expectedStartTime}, #{expectedEndTime},
+            #{status}, '0', #{remark}, #{createBy}, sysdate()
+        )
     </insert>
 
     <update id="updateHrShift" parameterType="HrShift">
@@ -56,10 +120,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="shiftName != null">shift_name = #{shiftName},</if>
             <if test="postType != null">post_type = #{postType},</if>
             <if test="workdayMask != null">workday_mask = #{workdayMask},</if>
+            <if test="scheduleMode != null">schedule_mode = #{scheduleMode},</if>
+            rotation_work_days = #{rotationWorkDays},
+            rotation_rest_days = #{rotationRestDays},
+            <if test="isRestShift != null">is_rest_shift = #{isRestShift},</if>
             <if test="summerExtendEnabled != null">summer_extend_enabled = #{summerExtendEnabled},</if>
             <if test="summerExtendMinutes != null">summer_extend_minutes = #{summerExtendMinutes},</if>
-            <if test="expectedStartTime != null">expected_start_time = #{expectedStartTime},</if>
-            <if test="expectedEndTime != null">expected_end_time = #{expectedEndTime},</if>
+            <if test="expectedStartTime != null or isRestShift == '1'">expected_start_time = #{expectedStartTime},</if>
+            <if test="expectedEndTime != null or isRestShift == '1'">expected_end_time = #{expectedEndTime},</if>
             <if test="status != null">status = #{status},</if>
             <if test="remark != null">remark = #{remark},</if>
             update_by = #{updateBy},
@@ -70,14 +138,33 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <update id="deleteHrShiftByIds" parameterType="Long">
         update hr_shift set del_flag = '2' where shift_id in
-        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
     </update>
 
     <select id="countScheduleRefByShiftIds" parameterType="Long" resultType="int">
         select count(1)
         from hr_schedule
         where shift_id in
-        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="countEmployeeSettingRefByShiftIds" parameterType="Long" resultType="int">
+        select count(1)
+        from hr_employee_setting
+        where default_shift_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="countEmployeeSettingRefByShiftId" parameterType="Long" resultType="int">
+        select count(1)
+        from hr_employee_setting
+        where default_shift_id = #{shiftId}
     </select>
 
     <select id="countByShiftCode" resultType="int">
@@ -99,10 +186,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <insert id="batchInsertPeriods">
-        insert into hr_shift_period(shift_id, period_no, start_time, end_time, create_by, create_time)
+        insert into hr_shift_period(
+            shift_id, period_no, segment_name, start_time, end_time,
+            valid_begin_time, valid_end_time, need_in_punch, need_out_punch,
+            cross_day, segment_remark, create_by, create_time
+        )
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.shiftId}, #{item.periodNo}, #{item.startTime}, #{item.endTime}, #{item.createBy}, sysdate())
+            (
+                #{item.shiftId}, #{item.periodNo}, #{item.segmentName}, #{item.startTime}, #{item.endTime},
+                #{item.validBeginTime}, #{item.validEndTime}, #{item.needInPunch}, #{item.needOutPunch},
+                #{item.crossDay}, #{item.segmentRemark}, #{item.createBy}, sysdate()
+            )
         </foreach>
     </insert>
 </mapper>

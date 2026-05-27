@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro"
+      th:with="triggerTypeList=${@dict.getType('hr_sync_trigger_type')},syncStatusList=${@dict.getType('hr_sync_status')},sourceTypeList=${@dict.getType('hr_attendance_source')}">
+<head>
+    <th:block th:include="include :: header('考勤同步日志')"/>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="sync-log-form">
+                <div class="select-list">
+                    <ul>
+                        <li>
+                            <label>同步批次号：</label>
+                            <input type="text" name="batchNo"/>
+                        </li>
+                        <li>
+                            <label>触发方式：</label>
+                            <select name="triggerType">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${triggerTypeList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>状态：</label>
+                            <select name="status">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${syncStatusList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('sync-log-form')">
+                                <i class="fa fa-search"></i>&nbsp;搜索
+                            </a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
+                                <i class="fa fa-refresh"></i>&nbsp;重置
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<script th:inline="javascript">
+    var prefix = ctx + "hr/attendanceRecord";
+    var triggerTypeDatas = [[${@dict.getType('hr_sync_trigger_type')}]];
+    var sourceTypeDatas = [[${@dict.getType('hr_attendance_source')}]];
+    var syncStatusDatas = [[${@dict.getType('hr_sync_status')}]];
+
+    $(function () {
+        var options = {
+            url: prefix + "/syncLog/list",
+            modalName: "考勤同步日志",
+            formId: "sync-log-form",
+            sortName: "logId",
+            sortOrder: "desc",
+            columns: [
+                {field: "logId", title: "日志ID", visible: false, switchable: false},
+                {field: "batchNo", title: "同步批次号"},
+                {field: "triggerType", title: "触发方式", formatter: formatTriggerType},
+                {field: "sourceType", title: "数据来源", formatter: formatSourceType},
+                {field: "status", title: "状态", formatter: formatStatus},
+                {field: "startTime", title: "开始时间", formatter: formatDateTimeValue},
+                {field: "endTime", title: "结束时间", formatter: formatDateTimeValue},
+                {field: "totalCount", title: "总条数"},
+                {field: "successCount", title: "成功条数"},
+                {field: "failCount", title: "失败条数"},
+                {field: "message", title: "说明"}
+            ]
+        };
+        $.table.init(options);
+    });
+
+    function formatTriggerType(value) {
+        return $.common.isEmpty(value) ? "" : $.table.selectDictLabel(triggerTypeDatas, value);
+    }
+
+    function formatSourceType(value) {
+        return $.common.isEmpty(value) ? "" : $.table.selectDictLabel(sourceTypeDatas, value);
+    }
+
+    function formatStatus(value) {
+        return $.common.isEmpty(value) ? "" : $.table.selectDictLabel(syncStatusDatas, value);
+    }
+
+    function formatDateTimeValue(value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        return String(value).replace("T", " ").replace(".0", "");
+    }
+
+    function resetQuery() {
+        $("#sync-log-form")[0].reset();
+        $.table.search("sync-log-form");
+    }
+</script>
+</body>
+</html>

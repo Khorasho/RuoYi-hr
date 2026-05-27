@@ -21,6 +21,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<result property="loginIp"       column="login_ip"        />
 		<result property="loginDate"     column="login_date"      />
 		<result property="pwdUpdateDate" column="pwd_update_date" />
+		<result property="entryDate"     column="entry_date"      />
+		<result property="leaveDate"     column="leave_date"      />
 		<result property="createBy"      column="create_by"       />
 		<result property="createTime"    column="create_time"     />
 		<result property="updateBy"      column="update_by"       />
@@ -60,8 +62,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </sql>
 	
 	<select id="selectUserList" parameterType="SysUser" resultMap="SysUserResult">
-		select u.user_id, u.dept_id, u.login_name, u.user_name, u.user_type, u.email, u.avatar, u.phonenumber, u.password, u.sex, u.salt, u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, d.dept_name, d.leader from sys_user u
+		select u.user_id, u.dept_id, u.login_name, u.user_name, u.user_type, u.email, u.avatar, u.phonenumber, u.password, u.sex, u.salt,
+		       u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark,
+		       d.dept_name, d.leader,
+		       hes.entry_date, hes.leave_date
+		from sys_user u
 		left join sys_dept d on u.dept_id = d.dept_id
+		left join hr_employee_setting hes on hes.user_id = u.user_id
 		where u.del_flag = '0'
 		<if test="userId != null and userId != 0">
 			AND u.user_id = #{userId}
@@ -84,8 +91,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<if test="deptId != null and deptId != 0">
 			AND (u.dept_id = #{deptId} OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE FIND_IN_SET (#{deptId},ancestors) ))
 		</if>
+		<if test="params.workStatus != null and params.workStatus != ''">
+			<choose>
+				<when test="params.workStatus == 'ACTIVE'">
+					AND (hes.leave_date is null OR hes.leave_date &gt;= curdate())
+				</when>
+				<when test="params.workStatus == 'LEFT'">
+					AND hes.leave_date is not null
+					AND hes.leave_date &lt; curdate()
+				</when>
+			</choose>
+		</if>
 		<!-- 数据范围过滤 -->
 		${params.dataScope}
+		order by (case when hes.leave_date is null then 0 else 1 end) asc, u.create_time desc
 	</select>
 	
 	<select id="selectAllocatedList" parameterType="SysUser" resultMap="SysUserResult">

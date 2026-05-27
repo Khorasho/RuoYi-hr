@@ -33,6 +33,7 @@ import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.SysPost;
 import com.ruoyi.system.domain.hr.HrSchedule;
 import com.ruoyi.system.domain.hr.HrShift;
@@ -47,6 +48,8 @@ import com.ruoyi.system.service.hr.IHrShiftService;
 @RequestMapping("/hr/shift")
 public class HrShiftController extends BaseController
 {
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
     private final String prefix = "hr/shift";
 
     @Autowired
@@ -114,8 +117,15 @@ public class HrShiftController extends BaseController
     @PostMapping("/add")
     @ResponseBody
     public AjaxResult addSave(HrShift shift,
+        @RequestParam(value = "segmentName", required = false) String[] segmentName,
         @RequestParam(value = "periodStart", required = false) String[] periodStart,
         @RequestParam(value = "periodEnd", required = false) String[] periodEnd,
+        @RequestParam(value = "validBegin", required = false) String[] validBegin,
+        @RequestParam(value = "validEnd", required = false) String[] validEnd,
+        @RequestParam(value = "needInPunch", required = false) String[] needInPunch,
+        @RequestParam(value = "needOutPunch", required = false) String[] needOutPunch,
+        @RequestParam(value = "crossDay", required = false) String[] crossDay,
+        @RequestParam(value = "segmentRemark", required = false) String[] segmentRemark,
         @RequestParam(value = "workdayMask", required = false) String workdayMask)
     {
         if (StringUtils.isEmpty(shift.getPostType()))
@@ -124,7 +134,8 @@ public class HrShiftController extends BaseController
         }
         shift.setWorkdayMask(workdayMask);
         shift.setCreateBy(getLoginName());
-        return toAjax(shiftService.insertHrShift(shift, buildPeriods(periodStart, periodEnd)));
+        return toAjax(shiftService.insertHrShift(shift, buildPeriods(segmentName, periodStart, periodEnd, validBegin, validEnd,
+            needInPunch, needOutPunch, crossDay, segmentRemark)));
     }
 
     @GetMapping("/edit/{id}")
@@ -211,7 +222,7 @@ public class HrShiftController extends BaseController
         Set<Long> skipIds = new HashSet<>();
         for (Long userId : ids)
         {
-            HrSchedule existing = getExistingScheduleByUserAndDate(userId, workDate);
+            HrSchedule existing = scheduleService.selectByUserAndDate(userId, workDate);
             if (existing == null)
             {
                 continue;
@@ -285,8 +296,15 @@ public class HrShiftController extends BaseController
     @PostMapping("/edit")
     @ResponseBody
     public AjaxResult editSave(HrShift shift,
+        @RequestParam(value = "segmentName", required = false) String[] segmentName,
         @RequestParam(value = "periodStart", required = false) String[] periodStart,
         @RequestParam(value = "periodEnd", required = false) String[] periodEnd,
+        @RequestParam(value = "validBegin", required = false) String[] validBegin,
+        @RequestParam(value = "validEnd", required = false) String[] validEnd,
+        @RequestParam(value = "needInPunch", required = false) String[] needInPunch,
+        @RequestParam(value = "needOutPunch", required = false) String[] needOutPunch,
+        @RequestParam(value = "crossDay", required = false) String[] crossDay,
+        @RequestParam(value = "segmentRemark", required = false) String[] segmentRemark,
         @RequestParam(value = "workdayMask", required = false) String workdayMask)
     {
         if (shift.getShiftId() == null)
@@ -299,7 +317,14 @@ public class HrShiftController extends BaseController
         }
         shift.setWorkdayMask(workdayMask);
         shift.setUpdateBy(getLoginName());
-        return toAjax(shiftService.updateHrShift(shift, buildPeriods(periodStart, periodEnd)));
+        int rows = shiftService.updateHrShift(shift, buildPeriods(segmentName, periodStart, periodEnd, validBegin, validEnd,
+            needInPunch, needOutPunch, crossDay, segmentRemark));
+        if (rows > 0)
+        {
+            scheduleService.syncFutureSchedule(7, getLoginName());
+            return AjaxResult.success("班次已更新，系统已同步未来7天排班与考勤明细");
+        }
+        return AjaxResult.error("修改失败");
     }
 
     @RequiresPermissions("hr:shift:remove")
@@ -343,7 +368,9 @@ public class HrShiftController extends BaseController
         return ztrees;
     }
 
-    private List<HrShiftPeriod> buildPeriods(String[] startArray, String[] endArray)
+    private List<HrShiftPeriod> buildPeriods(String[] segmentNames, String[] startArray, String[] endArray,
+        String[] validBeginArray, String[] validEndArray, String[] needInPunchArray, String[] needOutPunchArray,
+        String[] crossDayArray, String[] remarkArray)
     {
         List<HrShiftPeriod> list = new ArrayList<>();
         if (startArray == null || endArray == null)
@@ -359,11 +386,27 @@ public class HrShiftController extends BaseController
             }
             HrShiftPeriod period = new HrShiftPeriod();
             period.setPeriodNo(i + 1);
+            period.setSegmentName(getArrayValue(segmentNames, i, "第" + (i + 1) + "段"));
             period.setStartTime(parseTime(startArray[i]));
             period.setEndTime(parseTime(endArray[i]));
+            period.setValidBeginTime(parseTime(getArrayValue(validBeginArray, i, startArray[i])));
+            period.setValidEndTime(parseTime(getArrayValue(validEndArray, i, endArray[i])));
+            period.setNeedInPunch(getArrayValue(needInPunchArray, i, "1"));
+            period.setNeedOutPunch(getArrayValue(needOutPunchArray, i, "1"));
+            period.setCrossDay(getArrayValue(crossDayArray, i, "0"));
+            period.setSegmentRemark(getArrayValue(remarkArray, i, ""));
             list.add(period);
         }
         return list;
+    }
+
+    private String getArrayValue(String[] array, int index, String defaultValue)
+    {
+        if (array == null || index >= array.length)
+        {
+            return defaultValue;
+        }
+        return StringUtils.isEmpty(array[index]) ? defaultValue : array[index];
     }
 
     private LocalTime parseTime(String value)
@@ -372,13 +415,25 @@ public class HrShiftController extends BaseController
         {
             return null;
         }
+        String text = value.trim();
+        if (!text.matches("^([01]\\d|2[0-3]):([0-5]\\d)$"))
+        {
+            throw new ServiceException("时间格式必须为 HH:mm，例如 08:30");
+        }
         try
         {
-            return LocalTime.parse(value);
+            return LocalTime.parse(text);
         }
         catch (DateTimeParseException ex)
         {
-            return LocalTime.parse(value, DateTimeFormatter.ofPattern("HH:mm"));
+            try
+            {
+                return LocalTime.parse(text, TIME_FORMATTER);
+            }
+            catch (DateTimeParseException ignored)
+            {
+                throw new ServiceException("时间格式必须为 HH:mm，例如 08:30");
+            }
         }
     }
 
@@ -390,10 +445,5 @@ public class HrShiftController extends BaseController
         }
         String cleaned = mask.replaceAll("[^01]", "");
         return cleaned.length() == 7 ? cleaned : "1111100";
-    }
-
-    private HrSchedule getExistingScheduleByUserAndDate(Long userId, LocalDate workDate)
-    {
-        return scheduleService.selectByUserAndDate(userId, workDate);
     }
 }

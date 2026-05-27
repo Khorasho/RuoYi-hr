@@ -5,48 +5,200 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 <mapper namespace="com.ruoyi.system.mapper.hr.HrAttendanceResultMapper">
     <resultMap type="HrAttendanceResult" id="HrAttendanceResultResult">
         <id property="resultId" column="result_id"/>
+        <result property="scheduleId" column="schedule_id"/>
         <result property="userId" column="user_id"/>
+        <result property="loginName" column="login_name"/>
         <result property="userName" column="user_name"/>
+        <result property="deptId" column="dept_id"/>
         <result property="deptName" column="dept_name"/>
         <result property="workDate" column="work_date"/>
+        <result property="shiftId" column="shift_id"/>
         <result property="shiftName" column="shift_name"/>
+        <result property="restType" column="rest_type"/>
+        <result property="attendanceStatus" column="attendance_status"/>
+        <result property="exceptionType" column="exception_type"/>
         <result property="expectedInTime" column="expected_in_time"/>
         <result property="expectedOutTime" column="expected_out_time"/>
         <result property="actualInTime" column="actual_in_time"/>
         <result property="actualOutTime" column="actual_out_time"/>
+        <result property="punchCount" column="punch_count"/>
         <result property="lateFlag" column="late_flag"/>
         <result property="earlyFlag" column="early_flag"/>
         <result property="missCardFlag" column="miss_card_flag"/>
         <result property="absentFlag" column="absent_flag"/>
         <result property="expectedMinutes" column="expected_minutes"/>
         <result property="actualMinutes" column="actual_minutes"/>
+        <result property="segmentSummary" column="segment_summary"/>
+        <result property="segment1InDisplay" column="segment1_in_display"/>
+        <result property="segment1OutDisplay" column="segment1_out_display"/>
+        <result property="segment1Status" column="segment1_status"/>
+        <result property="segment2InDisplay" column="segment2_in_display"/>
+        <result property="segment2OutDisplay" column="segment2_out_display"/>
+        <result property="segment2Status" column="segment2_status"/>
+        <result property="segment3InDisplay" column="segment3_in_display"/>
+        <result property="segment3OutDisplay" column="segment3_out_display"/>
+        <result property="segment3Status" column="segment3_status"/>
+        <result property="dataSource" column="data_source"/>
+        <result property="remark" column="remark"/>
     </resultMap>
 
-    <select id="selectHrAttendanceResultList" parameterType="HrAttendanceResult" resultMap="HrAttendanceResultResult">
-        select r.*, u.user_name, d.dept_name, s.shift_name
+    <sql id="selectAttendanceVo">
+        select r.result_id,
+               r.schedule_id,
+               r.user_id,
+               r.login_name,
+               u.user_name,
+               r.dept_id,
+               d.dept_name,
+               r.work_date,
+               r.shift_id,
+               sh.shift_name,
+               r.rest_type,
+               r.attendance_status,
+               r.exception_type,
+               r.expected_in_time,
+               r.expected_out_time,
+               r.actual_in_time,
+               r.actual_out_time,
+               r.punch_count,
+               r.late_flag,
+               r.early_flag,
+               r.miss_card_flag,
+               r.absent_flag,
+               r.expected_minutes,
+               r.actual_minutes,
+               seg.segment_summary,
+               seg.segment1_in_display,
+               seg.segment1_out_display,
+               seg.segment1_status,
+               seg.segment2_in_display,
+               seg.segment2_out_display,
+               seg.segment2_status,
+               seg.segment3_in_display,
+               seg.segment3_out_display,
+               seg.segment3_status,
+               r.data_source,
+               r.remark
         from hr_attendance_result r
         left join sys_user u on u.user_id = r.user_id
         left join sys_dept d on d.dept_id = r.dept_id
-        left join hr_shift s on s.shift_id = r.shift_id
+        left join hr_shift sh on sh.shift_id = r.shift_id
+        left join (
+            select result_id,
+                   group_concat(
+                       concat(
+                           segment_name,
+                           '(',
+                           case segment_status
+                               when 'NORMAL' then 'NORMAL'
+                               when 'PENDING_CLOCK' then 'PENDING'
+                               when 'MISS_CARD' then 'MISS_CARD'
+                               when 'LATE' then 'LATE'
+                               when 'EARLY' then 'EARLY'
+                               when 'LATE_EARLY' then 'LATE_EARLY'
+                               when 'ABSENT' then 'ABSENT'
+                               else segment_status
+                           end,
+                           ' ',
+                           ifnull(date_format(actual_in_time, '%H:%i'), '-'),
+                           '/',
+                           ifnull(date_format(actual_out_time, '%H:%i'), '-'),
+                           ')'
+                       )
+                       order by segment_no separator '; '
+                   ) as segment_summary,
+                   max(case when segment_no = 1 then ifnull(date_format(actual_in_time, '%H:%i'), '-') end) as segment1_in_display,
+                   max(case when segment_no = 1 then ifnull(date_format(actual_out_time, '%H:%i'), '-') end) as segment1_out_display,
+                   max(case when segment_no = 1 then segment_status end) as segment1_status,
+                   max(case when segment_no = 2 then ifnull(date_format(actual_in_time, '%H:%i'), '-') end) as segment2_in_display,
+                   max(case when segment_no = 2 then ifnull(date_format(actual_out_time, '%H:%i'), '-') end) as segment2_out_display,
+                   max(case when segment_no = 2 then segment_status end) as segment2_status,
+                   max(case when segment_no = 3 then ifnull(date_format(actual_in_time, '%H:%i'), '-') end) as segment3_in_display,
+                   max(case when segment_no = 3 then ifnull(date_format(actual_out_time, '%H:%i'), '-') end) as segment3_out_display,
+                   max(case when segment_no = 3 then segment_status end) as segment3_status
+            from hr_attendance_result_segment
+            group by result_id
+        ) seg on seg.result_id = r.result_id
+    </sql>
+
+    <select id="selectHrAttendanceResultList" parameterType="HrAttendanceResult" resultMap="HrAttendanceResultResult">
+        <include refid="selectAttendanceVo"/>
         <where>
-            1=1
+            1 = 1
             <if test="userId != null">and r.user_id = #{userId}</if>
+            <if test="loginName != null and loginName != ''">and r.login_name like concat('%', #{loginName}, '%')</if>
+            <if test="userName != null and userName != ''">and u.user_name like concat('%', #{userName}, '%')</if>
+            <if test="deptId != null">and r.dept_id = #{deptId}</if>
+            <if test="shiftId != null">and r.shift_id = #{shiftId}</if>
+            <if test="shiftName != null and shiftName != ''">and sh.shift_name like concat('%', #{shiftName}, '%')</if>
+            <if test="attendanceStatus != null and attendanceStatus != ''">and r.attendance_status = #{attendanceStatus}</if>
+            <if test="exceptionType != null and exceptionType != ''">and r.exception_type like concat('%', #{exceptionType}, '%')</if>
+            <if test="params.abnormalOnly != null and params.abnormalOnly == '1'">
+                and r.attendance_status in ('MISS_CARD', 'LATE', 'EARLY', 'LATE_EARLY', 'ABSENT')
+            </if>
             <if test="params.month != null and params.month != ''">and date_format(r.work_date, '%Y-%m') = #{params.month}</if>
             <if test="params.beginDate != null and params.beginDate != ''">and r.work_date &gt;= #{params.beginDate}</if>
             <if test="params.endDate != null and params.endDate != ''">and r.work_date &lt;= #{params.endDate}</if>
         </where>
-        order by r.work_date desc, r.user_id
+        order by r.work_date desc, r.login_name asc
+    </select>
+
+    <select id="selectByUserAndDate" resultMap="HrAttendanceResultResult">
+        <include refid="selectAttendanceVo"/>
+        where r.user_id = #{userId}
+          and r.work_date = #{workDate}
+        limit 1
+    </select>
+
+    <select id="selectByResultId" resultMap="HrAttendanceResultResult">
+        <include refid="selectAttendanceVo"/>
+        where r.result_id = #{resultId}
+        limit 1
     </select>
 
     <insert id="insertHrAttendanceResult" parameterType="HrAttendanceResult" useGeneratedKeys="true" keyProperty="resultId">
-        insert into hr_attendance_result(user_id, dept_id, work_date, shift_id, expected_in_time, expected_out_time,
-        actual_in_time, actual_out_time, late_flag, early_flag, miss_card_flag, absent_flag,
-        expected_minutes, actual_minutes, create_by, create_time)
-        values(#{userId}, (select dept_id from hr_schedule where user_id = #{userId} and work_date = #{workDate} limit 1),
-        #{workDate}, (select shift_id from hr_schedule where user_id = #{userId} and work_date = #{workDate} limit 1),
-        #{expectedInTime}, #{expectedOutTime}, #{actualInTime}, #{actualOutTime}, #{lateFlag}, #{earlyFlag}, #{missCardFlag}, #{absentFlag},
-        #{expectedMinutes}, #{actualMinutes}, #{createBy}, sysdate())
+        insert into hr_attendance_result(
+            schedule_id, user_id, login_name, dept_id, work_date, shift_id, rest_type,
+            attendance_status, exception_type, expected_in_time, expected_out_time,
+            actual_in_time, actual_out_time, punch_count, late_flag, early_flag, miss_card_flag,
+            absent_flag, expected_minutes, actual_minutes, data_source, remark, create_by, create_time
+        )
+        values(
+            #{scheduleId}, #{userId}, #{loginName}, #{deptId}, #{workDate}, #{shiftId}, #{restType},
+            #{attendanceStatus}, #{exceptionType}, #{expectedInTime}, #{expectedOutTime},
+            #{actualInTime}, #{actualOutTime}, #{punchCount}, #{lateFlag}, #{earlyFlag}, #{missCardFlag},
+            #{absentFlag}, #{expectedMinutes}, #{actualMinutes}, #{dataSource}, #{remark}, #{createBy}, sysdate()
+        )
     </insert>
+
+    <update id="updateHrAttendanceResult" parameterType="HrAttendanceResult">
+        update hr_attendance_result
+        <set>
+            <if test="scheduleId != null">schedule_id = #{scheduleId},</if>
+            <if test="loginName != null">login_name = #{loginName},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="shiftId != null">shift_id = #{shiftId},</if>
+            <if test="restType != null">rest_type = #{restType},</if>
+            <if test="attendanceStatus != null">attendance_status = #{attendanceStatus},</if>
+            <if test="exceptionType != null">exception_type = #{exceptionType},</if>
+            expected_in_time = #{expectedInTime},
+            expected_out_time = #{expectedOutTime},
+            actual_in_time = #{actualInTime},
+            actual_out_time = #{actualOutTime},
+            punch_count = #{punchCount},
+            late_flag = #{lateFlag},
+            early_flag = #{earlyFlag},
+            miss_card_flag = #{missCardFlag},
+            absent_flag = #{absentFlag},
+            expected_minutes = #{expectedMinutes},
+            actual_minutes = #{actualMinutes},
+            <if test="dataSource != null">data_source = #{dataSource},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </set>
+        where result_id = #{resultId}
+    </update>
 
     <delete id="deleteByDate" parameterType="java.time.LocalDate">
         delete from hr_attendance_result where work_date = #{workDate}
@@ -54,6 +206,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <delete id="deleteByMonth" parameterType="String">
         delete from hr_attendance_result where date_format(work_date, '%Y-%m') = #{monthStr}
+    </delete>
+
+    <delete id="deleteByDateRange">
+        delete from hr_attendance_result
+        where work_date &gt;= #{beginDate}
+          and work_date &lt;= #{endDate}
     </delete>
 
     <insert id="insertHrAttendanceException" parameterType="HrAttendanceException">
@@ -65,9 +223,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         delete from hr_attendance_exception where work_date = #{workDate}
     </delete>
 
+    <delete id="deleteExceptionsByDateRange">
+        delete from hr_attendance_exception
+        where work_date &gt;= #{beginDate}
+          and work_date &lt;= #{endDate}
+    </delete>
+
     <select id="selectMonthDeptSummary" resultType="map">
         select d.dept_name,
-               count(1) as totalDays,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
                sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
                sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
                sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
@@ -75,17 +241,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                sum(r.actual_minutes) as actualMinutes
         from hr_attendance_result r
         left join sys_dept d on d.dept_id = r.dept_id
-        where date_format(r.work_date, '%Y-%m') = #{arg0}
-        <if test="arg1 != null">and r.dept_id = #{arg1}</if>
-        <if test="arg2 != null">and r.user_id = #{arg2}</if>
+        where date_format(r.work_date, '%Y-%m') = #{monthStr}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="userId != null">and r.user_id = #{userId}</if>
         group by r.dept_id, d.dept_name
         order by r.dept_id
     </select>
 
     <select id="selectMonthUserSummary" resultType="map">
-        select u.user_name,
+        select r.login_name,
+               u.user_name,
                d.dept_name,
-               count(1) as totalDays,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
                sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
                sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
                sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
@@ -94,10 +263,157 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from hr_attendance_result r
         left join sys_user u on u.user_id = r.user_id
         left join sys_dept d on d.dept_id = r.dept_id
-        where date_format(r.work_date, '%Y-%m') = #{arg0}
-        <if test="arg1 != null">and r.dept_id = #{arg1}</if>
-        <if test="arg2 != null">and r.user_id = #{arg2}</if>
-        group by r.user_id, u.user_name, d.dept_name
-        order by r.user_id
+        where date_format(r.work_date, '%Y-%m') = #{monthStr}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="userId != null">and r.user_id = #{userId}</if>
+        group by r.user_id, r.login_name, u.user_name, d.dept_name
+        order by r.login_name asc
+    </select>
+
+    <select id="selectYearDeptSummary" resultType="map">
+        select d.dept_name,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
+               sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
+               sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
+               sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
+               sum(case when r.absent_flag = '1' then 1 else 0 end) as absentCount,
+               sum(r.actual_minutes) as actualMinutes
+        from hr_attendance_result r
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y') = #{yearStr}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="userId != null">and r.user_id = #{userId}</if>
+        group by r.dept_id, d.dept_name
+        order by r.dept_id
+    </select>
+
+    <select id="selectYearUserSummary" resultType="map">
+        select r.login_name,
+               u.user_name,
+               d.dept_name,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
+               sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
+               sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
+               sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
+               sum(case when r.absent_flag = '1' then 1 else 0 end) as absentCount,
+               sum(r.actual_minutes) as actualMinutes
+        from hr_attendance_result r
+        left join sys_user u on u.user_id = r.user_id
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y') = #{yearStr}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="userId != null">and r.user_id = #{userId}</if>
+        group by r.user_id, r.login_name, u.user_name, d.dept_name
+        order by r.login_name asc
+    </select>
+
+    <select id="selectMonthDeptReport" parameterType="com.ruoyi.system.domain.hr.HrAttendanceReportQuery"
+            resultType="com.ruoyi.system.domain.hr.HrDeptAttendanceReport">
+        select ifnull(r.dept_id, 0) as deptId,
+               ifnull(d.dept_name, '未分配部门') as deptName,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
+               count(distinct case when r.late_flag = '1' then r.user_id end) as lateUserCount,
+               count(distinct case when r.early_flag = '1' then r.user_id end) as earlyUserCount,
+               count(distinct case when r.miss_card_flag = '1' then r.user_id end) as missCardUserCount,
+               count(distinct case when r.absent_flag = '1' then r.user_id end) as absentUserCount
+        from hr_attendance_result r
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y-%m') = #{month}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="loginName != null and loginName != ''">and r.login_name like concat('%', #{loginName}, '%')</if>
+        <if test="userName != null and userName != ''">
+            and exists (
+                select 1 from sys_user su
+                where su.user_id = r.user_id
+                  and su.user_name like concat('%', #{userName}, '%')
+            )
+        </if>
+        group by ifnull(r.dept_id, 0), ifnull(d.dept_name, '未分配部门')
+        order by ifnull(r.dept_id, 0)
+    </select>
+
+    <select id="selectMonthUserReport" parameterType="com.ruoyi.system.domain.hr.HrAttendanceReportQuery"
+            resultType="com.ruoyi.system.domain.hr.HrUserAttendanceReport">
+        select r.user_id as userId,
+               r.login_name as loginName,
+               ifnull(u.user_name, '-') as userName,
+               ifnull(r.dept_id, 0) as deptId,
+               ifnull(d.dept_name, '未分配部门') as deptName,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
+               sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
+               sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
+               sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
+               sum(case when r.absent_flag = '1' then 1 else 0 end) as absentCount,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then ifnull(r.actual_minutes, 0) else 0 end) as actualMinutes
+        from hr_attendance_result r
+        left join sys_user u on u.user_id = r.user_id
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y-%m') = #{month}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="loginName != null and loginName != ''">and r.login_name like concat('%', #{loginName}, '%')</if>
+        <if test="userName != null and userName != ''">and u.user_name like concat('%', #{userName}, '%')</if>
+        group by r.user_id, r.login_name, u.user_name, r.dept_id, d.dept_name
+        order by r.login_name asc
+    </select>
+
+    <select id="selectYearDeptReport" parameterType="com.ruoyi.system.domain.hr.HrAttendanceReportQuery"
+            resultType="com.ruoyi.system.domain.hr.HrDeptAttendanceReport">
+        select ifnull(r.dept_id, 0) as deptId,
+               ifnull(d.dept_name, '未分配部门') as deptName,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
+               count(distinct case when r.late_flag = '1' then r.user_id end) as lateUserCount,
+               count(distinct case when r.early_flag = '1' then r.user_id end) as earlyUserCount,
+               count(distinct case when r.miss_card_flag = '1' then r.user_id end) as missCardUserCount,
+               count(distinct case when r.absent_flag = '1' then r.user_id end) as absentUserCount
+        from hr_attendance_result r
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y') = #{year}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="loginName != null and loginName != ''">and r.login_name like concat('%', #{loginName}, '%')</if>
+        <if test="userName != null and userName != ''">
+            and exists (
+                select 1 from sys_user su
+                where su.user_id = r.user_id
+                  and su.user_name like concat('%', #{userName}, '%')
+            )
+        </if>
+        group by ifnull(r.dept_id, 0), ifnull(d.dept_name, '未分配部门')
+        order by ifnull(r.dept_id, 0)
+    </select>
+
+    <select id="selectYearUserReport" parameterType="com.ruoyi.system.domain.hr.HrAttendanceReportQuery"
+            resultType="com.ruoyi.system.domain.hr.HrUserAttendanceReport">
+        select r.user_id as userId,
+               r.login_name as loginName,
+               ifnull(u.user_name, '-') as userName,
+               ifnull(r.dept_id, 0) as deptId,
+               ifnull(d.dept_name, '未分配部门') as deptName,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then 1 else 0 end) as needDays,
+               sum(case when r.attendance_status in ('NORMAL', 'LATE', 'EARLY', 'LATE_EARLY', 'MISS_CARD') then 1 else 0 end) as workDays,
+               sum(case when r.attendance_status = 'REST' then 1 else 0 end) as restDays,
+               sum(case when r.late_flag = '1' then 1 else 0 end) as lateCount,
+               sum(case when r.early_flag = '1' then 1 else 0 end) as earlyCount,
+               sum(case when r.miss_card_flag = '1' then 1 else 0 end) as missCardCount,
+               sum(case when r.absent_flag = '1' then 1 else 0 end) as absentCount,
+               sum(case when r.attendance_status &lt;&gt; 'REST' then ifnull(r.actual_minutes, 0) else 0 end) as actualMinutes
+        from hr_attendance_result r
+        left join sys_user u on u.user_id = r.user_id
+        left join sys_dept d on d.dept_id = r.dept_id
+        where date_format(r.work_date, '%Y') = #{year}
+        <if test="deptId != null">and r.dept_id = #{deptId}</if>
+        <if test="loginName != null and loginName != ''">and r.login_name like concat('%', #{loginName}, '%')</if>
+        <if test="userName != null and userName != ''">and u.user_name like concat('%', #{userName}, '%')</if>
+        group by r.user_id, r.login_name, u.user_name, r.dept_id, d.dept_name
+        order by r.login_name asc
     </select>
 </mapper>

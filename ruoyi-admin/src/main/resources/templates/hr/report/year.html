@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('年度报表')"/>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="tabs-container">
+                <ul class="nav nav-tabs">
+                    <li class="active"><a data-toggle="tab" href="#dept_year_tab" aria-expanded="true">部门年度汇总</a></li>
+                    <li><a data-toggle="tab" href="#user_year_tab" aria-expanded="false">个人年度汇总</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div id="dept_year_tab" class="tab-pane active">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-sm-12 search-collapse">
+                                    <form id="dept-report-form">
+                                        <input type="hidden" id="deptDeptId" name="deptId"/>
+                                        <div class="select-list">
+                                            <ul>
+                                                <li>
+                                                    <label>年份：</label>
+                                                    <div class="input-group" style="width: 160px;">
+                                                        <input type="text" id="deptYear" name="year" class="form-control" placeholder="请选择年份" readonly>
+                                                        <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                                    </div>
+                                                </li>
+                                                <li>
+                                                    <label>部门：</label>
+                                                    <div class="input-group" style="width: 220px;">
+                                                        <input type="text" id="deptDeptName" class="form-control" placeholder="请选择部门" readonly onclick="selectDeptTree('dept')">
+                                                        <span class="input-group-addon" onclick="selectDeptTree('dept')"><i class="fa fa-search"></i></span>
+                                                    </div>
+                                                </li>
+                                                <li>
+                                                    <a class="btn btn-primary btn-rounded btn-sm" onclick="searchDeptTab()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                                    <a class="btn btn-warning btn-rounded btn-sm" onclick="resetDeptTab()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div class="btn-group-sm" role="group">
+                                    <a class="btn btn-success" href="javascript:void(0)" onclick="exportDept()" shiro:hasPermission="hr:report:view">
+                                        <i class="fa fa-download"></i> 导出部门年度汇总
+                                    </a>
+                                </div>
+
+                                <div class="col-sm-12 select-table table-striped">
+                                    <table class="table table-bordered table-hover" id="dept-summary-table">
+                                        <thead>
+                                        <tr>
+                                            <th>部门</th>
+                                            <th>应出勤天数</th>
+                                            <th>实出勤天数</th>
+                                            <th>休息天数</th>
+                                            <th>迟到人数</th>
+                                            <th>早退人数</th>
+                                            <th>缺卡人数</th>
+                                            <th>旷工人数</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="user_year_tab" class="tab-pane">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-sm-12 search-collapse">
+                                    <form id="user-report-form">
+                                        <input type="hidden" id="userDeptId" name="deptId"/>
+                                        <div class="select-list">
+                                            <ul>
+                                                <li>
+                                                    <label>年份：</label>
+                                                    <div class="input-group" style="width: 160px;">
+                                                        <input type="text" id="userYear" name="year" class="form-control" placeholder="请选择年份" readonly>
+                                                        <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                                    </div>
+                                                </li>
+                                                <li>
+                                                    <label>工号：</label>
+                                                    <input type="text" id="loginName" name="loginName"/>
+                                                </li>
+                                                <li>
+                                                    <label>姓名：</label>
+                                                    <input type="text" id="userName" name="userName"/>
+                                                </li>
+                                                <li>
+                                                    <label>部门：</label>
+                                                    <div class="input-group" style="width: 220px;">
+                                                        <input type="text" id="userDeptName" class="form-control" placeholder="请选择部门" readonly onclick="selectDeptTree('user')">
+                                                        <span class="input-group-addon" onclick="selectDeptTree('user')"><i class="fa fa-search"></i></span>
+                                                    </div>
+                                                </li>
+                                                <li>
+                                                    <a class="btn btn-primary btn-rounded btn-sm" onclick="searchUserTab()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                                    <a class="btn btn-warning btn-rounded btn-sm" onclick="resetUserTab()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div class="btn-group-sm" id="user-report-toolbar" role="group">
+                                    <a class="btn btn-primary" href="javascript:void(0)" onclick="exportUser()" shiro:hasPermission="hr:report:view">
+                                        <i class="fa fa-download"></i> 导出个人年度汇总
+                                    </a>
+                                </div>
+
+                                <div class="col-sm-12 select-table table-striped">
+                                    <table id="user-report-table"></table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: datetimepicker-js"/>
+<script th:inline="javascript">
+    var prefix = ctx + "hr/report/year";
+    var defaultYear = [[${defaultYear}]];
+    var currentDeptTarget = "dept";
+
+    $(function () {
+        initYearPicker();
+        initFromQuery();
+        initDefaultYear();
+        initUserTable();
+        loadDeptSummary();
+        $.table.search("user-report-form", "user-report-table");
+    });
+
+    function initFromQuery() {
+        var params = new URLSearchParams(window.location.search || "");
+        var year = params.get("year");
+        var deptId = params.get("deptId");
+        var deptName = params.get("deptName");
+        var loginName = params.get("loginName");
+        var userName = params.get("userName");
+
+        setValue("#deptYear", year);
+        setValue("#userYear", year);
+        setValue("#deptDeptId", deptId);
+        setValue("#userDeptId", deptId);
+        setValue("#deptDeptName", deptName);
+        setValue("#userDeptName", deptName);
+        setValue("#loginName", loginName);
+        setValue("#userName", userName);
+    }
+
+    function initYearPicker() {
+        layui.use('laydate', function () {
+            var laydate = layui.laydate;
+            laydate.render({elem: '#deptYear', type: 'year', trigger: 'click'});
+            laydate.render({elem: '#userYear', type: 'year', trigger: 'click'});
+        });
+    }
+
+    function initDefaultYear() {
+        if ($.common.isEmpty($("#deptYear").val())) {
+            $("#deptYear").val(defaultYear);
+        }
+        if ($.common.isEmpty($("#userYear").val())) {
+            $("#userYear").val(defaultYear);
+        }
+    }
+
+    function initUserTable() {
+        var options = {
+            id: "user-report-table",
+            url: prefix + "/user/list",
+            modalName: "个人年度汇总",
+            formId: "user-report-form",
+            toolbar: "user-report-toolbar",
+            showRefresh: false,
+            showColumns: false,
+            showToggle: false,
+            columns: [
+                {field: "loginName", title: "工号"},
+                {field: "userName", title: "姓名"},
+                {field: "deptName", title: "部门"},
+                {field: "needDays", title: "应出勤天数"},
+                {field: "workDays", title: "实出勤天数"},
+                {field: "restDays", title: "休息天数"},
+                {field: "lateCount", title: "迟到次数"},
+                {field: "earlyCount", title: "早退次数"},
+                {field: "missCardCount", title: "缺卡次数"},
+                {field: "absentCount", title: "旷工次数"},
+                {field: "actualMinutes", title: "实出勤分钟"}
+            ]
+        };
+        $.table.init(options);
+    }
+
+    function searchDeptTab() {
+        loadDeptSummary();
+    }
+
+    function searchUserTab() {
+        $.table.search("user-report-form", "user-report-table");
+    }
+
+    function resetDeptTab() {
+        $("#dept-report-form")[0].reset();
+        $("#deptDeptId").val("");
+        $("#deptDeptName").val("");
+        $("#deptYear").val(defaultYear);
+        loadDeptSummary();
+    }
+
+    function resetUserTab() {
+        $("#user-report-form")[0].reset();
+        $("#userDeptId").val("");
+        $("#userDeptName").val("");
+        $("#userYear").val(defaultYear);
+        $.table.search("user-report-form", "user-report-table");
+    }
+
+    function loadDeptSummary() {
+        $.post(prefix + "/dept/list", $("#dept-report-form").serialize(), function (result) {
+            if (result.code !== 0) {
+                $.modal.alertError(result.msg || "部门年度汇总加载失败");
+                return;
+            }
+            renderDeptRows(result.rows || []);
+        });
+    }
+
+    function renderDeptRows(rows) {
+        var html = [];
+        if (!rows.length) {
+            html.push('<tr><td colspan="8" class="text-center">暂无数据</td></tr>');
+        } else {
+            $.each(rows, function (index, row) {
+                html.push('<tr>');
+                html.push('<td>' + nvl(row.deptName) + '</td>');
+                html.push('<td>' + nvl(row.needDays, 0) + '</td>');
+                html.push('<td>' + nvl(row.workDays, 0) + '</td>');
+                html.push('<td>' + nvl(row.restDays, 0) + '</td>');
+                html.push('<td>' + nvl(row.lateUserCount, 0) + '</td>');
+                html.push('<td>' + nvl(row.earlyUserCount, 0) + '</td>');
+                html.push('<td>' + nvl(row.missCardUserCount, 0) + '</td>');
+                html.push('<td>' + nvl(row.absentUserCount, 0) + '</td>');
+                html.push('</tr>');
+            });
+        }
+        $("#dept-summary-table tbody").html(html.join(""));
+    }
+
+    function exportDept() {
+        submitExport(prefix + "/dept/export", "部门年度汇总", "#dept-report-form");
+    }
+
+    function exportUser() {
+        submitExport(prefix + "/user/export", "个人年度汇总", "#user-report-form");
+    }
+
+    function submitExport(url, title, formSelector) {
+        $.modal.confirm("确定导出当前" + title + "吗？", function () {
+            $.modal.loading("正在导出数据，请稍候...");
+            $.post(url, $(formSelector).serializeArray(), function (result) {
+                if (result.code === 0) {
+                    window.location.href = ctx + "common/download?fileName=" + encodeURI(result.msg) + "&delete=true";
+                } else if (result.code === 301) {
+                    $.modal.alertWarning(result.msg);
+                } else {
+                    $.modal.alertError(result.msg);
+                }
+                $.modal.closeLoading();
+            });
+        });
+    }
+
+    function selectDeptTree(target) {
+        currentDeptTarget = target || "dept";
+        var deptId = currentDeptTarget === "dept" ? $("#deptDeptId").val() : $("#userDeptId").val();
+        deptId = $.common.isEmpty(deptId) ? 0 : deptId;
+        $.modal.openOptions({
+            title: "选择部门",
+            width: "380",
+            url: ctx + "hr/schedule/selectDeptTree/" + deptId,
+            callBack: doDeptSubmit
+        });
+    }
+
+    function doDeptSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        var treeId = body.find("#treeId").val();
+        var treeName = body.find("#treeName").val();
+        if (currentDeptTarget === "dept") {
+            $("#deptDeptId").val(treeId);
+            $("#deptDeptName").val(treeName);
+        } else {
+            $("#userDeptId").val(treeId);
+            $("#userDeptName").val(treeName);
+        }
+        $.modal.close(index);
+    }
+
+    function setValue(selector, value) {
+        if (!$.common.isEmpty(value)) {
+            $(selector).val(value);
+        }
+    }
+
+    function nvl(value, defaultValue) {
+        return $.common.isEmpty(value) ? (defaultValue === undefined ? "-" : defaultValue) : value;
+    }
+</script>
+</body>
+</html>

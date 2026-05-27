@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <th:block th:include="include :: header('select user')"/>
+    <th:block th:include="include :: header('选择员工')"/>
 </head>
 <body class="gray-bg">
 <div class="container-div">
@@ -13,23 +13,23 @@
                 <div class="select-list">
                     <ul>
                         <li>
-                            <label>&#24037;&#21495;&#65306;</label>
+                            <label>工号：</label>
                             <input type="text" name="loginName"/>
                         </li>
                         <li>
-                            <label>&#22995;&#21517;&#65306;</label>
+                            <label>姓名：</label>
                             <input type="text" name="userName"/>
                         </li>
                         <li>
-                            <label>&#25163;&#26426;&#21495;&#65306;</label>
+                            <label>手机号：</label>
                             <input type="text" name="phonenumber"/>
                         </li>
                         <li>
                             <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('select-user-form')">
-                                <i class="fa fa-search"></i>&nbsp;&#25628;&#32034;
+                                <i class="fa fa-search"></i>&nbsp;搜索
                             </a>
                             <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
-                                <i class="fa fa-refresh"></i>&nbsp;&#37325;&#32622;
+                                <i class="fa fa-refresh"></i>&nbsp;重置
                             </a>
                         </li>
                     </ul>
@@ -58,26 +58,29 @@
             showColumns: false,
             clickToSelect: true,
             singleSelect: true,
+            uniqueId: "userId",
             columns: [{
                 checkbox: true
             }, {
                 field: "userId",
-                title: "ID"
+                title: "用户ID",
+                visible: false,
+                switchable: false
             }, {
                 field: "loginName",
-                title: "\u5de5\u53f7"
+                title: "工号"
             }, {
                 field: "userName",
-                title: "\u59d3\u540d"
+                title: "姓名"
             }, {
                 field: "dept",
-                title: "\u90e8\u95e8",
+                title: "部门",
                 formatter: function (value, row) {
                     return row.dept ? row.dept.deptName : "";
                 }
             }, {
                 field: "phonenumber",
-                title: "\u624b\u673a\u53f7"
+                title: "手机号"
             }]
         };
         $.table.init(options);

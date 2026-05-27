@@ -6,47 +6,85 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="HrSchedule" id="HrScheduleResult">
         <id property="scheduleId" column="schedule_id"/>
         <result property="userId" column="user_id"/>
+        <result property="loginName" column="login_name"/>
         <result property="userName" column="user_name"/>
         <result property="deptId" column="dept_id"/>
         <result property="deptName" column="dept_name"/>
         <result property="workDate" column="work_date"/>
+        <result property="scheduleMonth" column="schedule_month"/>
         <result property="shiftId" column="shift_id"/>
         <result property="shiftName" column="shift_name"/>
         <result property="restType" column="rest_type"/>
+        <result property="generateSource" column="generate_source"/>
+        <result property="manualModified" column="manual_modified"/>
         <result property="scheduleRemark" column="schedule_remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <select id="selectHrScheduleList" parameterType="HrSchedule" resultMap="HrScheduleResult">
-        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
-        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
+    <sql id="selectHrScheduleVo">
+        select s.schedule_id,
+               s.user_id,
+               u.login_name,
+               u.user_name,
+               s.dept_id,
+               d.dept_name,
+               s.work_date,
+               s.schedule_month,
+               s.shift_id,
+               sh.shift_name,
+               s.rest_type,
+               s.generate_source,
+               s.manual_modified,
+               s.schedule_remark,
+               s.create_by,
+               s.create_time,
+               s.update_by,
+               s.update_time
         from hr_schedule s
         left join sys_user u on u.user_id = s.user_id
         left join sys_dept d on d.dept_id = s.dept_id
         left join hr_shift sh on sh.shift_id = s.shift_id
+    </sql>
+
+    <select id="selectHrScheduleList" parameterType="HrSchedule" resultMap="HrScheduleResult">
+        <include refid="selectHrScheduleVo"/>
         <where>
-            1=1
+            1 = 1
+            <if test="scheduleId != null">and s.schedule_id = #{scheduleId}</if>
             <if test="userId != null">and s.user_id = #{userId}</if>
+            <if test="loginName != null and loginName != ''">and u.login_name like concat('%', #{loginName}, '%')</if>
+            <if test="userName != null and userName != ''">and u.user_name like concat('%', #{userName}, '%')</if>
             <if test="deptId != null">and s.dept_id = #{deptId}</if>
+            <if test="shiftId != null">and s.shift_id = #{shiftId}</if>
+            <if test="shiftName != null and shiftName != ''">and sh.shift_name like concat('%', #{shiftName}, '%')</if>
+            <if test="restType != null and restType != ''">and s.rest_type = #{restType}</if>
+            <if test="generateSource != null and generateSource != ''">and s.generate_source = #{generateSource}</if>
+            <if test="manualModified != null and manualModified != ''">and s.manual_modified = #{manualModified}</if>
+            <if test="scheduleMonth != null and scheduleMonth != ''">and s.schedule_month = #{scheduleMonth}</if>
             <if test="workDate != null">and s.work_date = #{workDate}</if>
             <if test="params.beginTime != null and params.beginTime != ''">and s.work_date &gt;= #{params.beginTime}</if>
             <if test="params.endTime != null and params.endTime != ''">and s.work_date &lt;= #{params.endTime}</if>
         </where>
-        order by s.work_date desc, s.user_id asc
+        order by s.work_date desc, u.login_name asc
     </select>
 
     <select id="selectHrScheduleById" parameterType="Long" resultMap="HrScheduleResult">
-        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
-        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
-        from hr_schedule s
-        left join sys_user u on u.user_id = s.user_id
-        left join sys_dept d on d.dept_id = s.dept_id
-        left join hr_shift sh on sh.shift_id = s.shift_id
+        <include refid="selectHrScheduleVo"/>
         where s.schedule_id = #{scheduleId}
     </select>
 
     <insert id="insertHrSchedule" parameterType="HrSchedule" useGeneratedKeys="true" keyProperty="scheduleId">
-        insert into hr_schedule(user_id, dept_id, work_date, shift_id, rest_type, schedule_remark, create_by, create_time)
-        values(#{userId}, #{deptId}, #{workDate}, #{shiftId}, #{restType}, #{scheduleRemark}, #{createBy}, sysdate())
+        insert into hr_schedule(
+            user_id, dept_id, work_date, schedule_month, shift_id, rest_type,
+            generate_source, manual_modified, schedule_remark, create_by, create_time
+        )
+        values(
+            #{userId}, #{deptId}, #{workDate}, #{scheduleMonth}, #{shiftId}, #{restType},
+            #{generateSource}, #{manualModified}, #{scheduleRemark}, #{createBy}, sysdate()
+        )
     </insert>
 
     <update id="updateHrSchedule" parameterType="HrSchedule">
@@ -55,8 +93,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="userId != null">user_id = #{userId},</if>
             <if test="deptId != null">dept_id = #{deptId},</if>
             <if test="workDate != null">work_date = #{workDate},</if>
+            <if test="scheduleMonth != null">schedule_month = #{scheduleMonth},</if>
             shift_id = #{shiftId},
             <if test="restType != null">rest_type = #{restType},</if>
+            <if test="generateSource != null">generate_source = #{generateSource},</if>
+            <if test="manualModified != null">manual_modified = #{manualModified},</if>
             <if test="scheduleRemark != null">schedule_remark = #{scheduleRemark},</if>
             update_by = #{updateBy},
             update_time = sysdate()
@@ -66,15 +107,35 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <delete id="deleteHrScheduleByIds" parameterType="Long">
         delete from hr_schedule where schedule_id in
-        <foreach collection="array" item="id" open="(" separator="," close=")">#{id}</foreach>
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
     </delete>
 
     <delete id="deleteByUserAndDate">
         delete from hr_schedule where user_id = #{userId} and work_date = #{workDate}
     </delete>
-    
+
+    <delete id="deleteByUserAndRange">
+        delete from hr_schedule
+        where user_id = #{userId}
+          and work_date &gt;= #{beginDate}
+          and work_date &lt;= #{endDate}
+    </delete>
+
     <select id="countByUserAndDate" resultType="int">
-        select count(1) from hr_schedule where user_id = #{userId} and work_date = #{workDate}
+        select count(1)
+        from hr_schedule
+        where user_id = #{userId}
+          and work_date = #{workDate}
+    </select>
+
+    <select id="countByUserAndDateExcludeId" resultType="int">
+        select count(1)
+        from hr_schedule
+        where schedule_id &lt;&gt; #{scheduleId}
+          and user_id = #{userId}
+          and work_date = #{workDate}
     </select>
 
     <select id="selectWorkDatesByUserAndRange" resultType="java.time.LocalDate">
@@ -85,47 +146,37 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and work_date &lt;= #{endDate}
     </select>
 
-    <select id="selectLatestShiftIdBeforeDate" resultType="java.lang.Long">
-        select shift_id
-        from hr_schedule
-        where user_id = #{userId}
-          and shift_id is not null
-          and work_date &lt; #{workDate}
-        order by work_date desc
-        limit 1
+    <select id="selectByUserAndRange" resultMap="HrScheduleResult">
+        <include refid="selectHrScheduleVo"/>
+        where s.user_id = #{userId}
+          and s.work_date &gt;= #{beginDate}
+          and s.work_date &lt;= #{endDate}
+        order by s.work_date asc
     </select>
 
     <select id="selectByDate" resultMap="HrScheduleResult" parameterType="java.time.LocalDate">
-        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
-        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
-        from hr_schedule s
-        left join sys_user u on u.user_id = s.user_id
-        left join sys_dept d on d.dept_id = s.dept_id
-        left join hr_shift sh on sh.shift_id = s.shift_id
+        <include refid="selectHrScheduleVo"/>
         where s.work_date = #{workDate}
     </select>
 
+    <select id="selectByDateRange" resultMap="HrScheduleResult">
+        <include refid="selectHrScheduleVo"/>
+        where s.work_date &gt;= #{beginDate}
+          and s.work_date &lt;= #{endDate}
+        order by s.work_date asc, u.login_name asc
+    </select>
+
     <select id="selectByUserAndDate" resultMap="HrScheduleResult">
-        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
-        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
-        from hr_schedule s
-        left join sys_user u on u.user_id = s.user_id
-        left join sys_dept d on d.dept_id = s.dept_id
-        left join hr_shift sh on sh.shift_id = s.shift_id
+        <include refid="selectHrScheduleVo"/>
         where s.user_id = #{userId}
           and s.work_date = #{workDate}
         limit 1
     </select>
 
     <select id="selectByShiftId" resultMap="HrScheduleResult" parameterType="Long">
-        select s.schedule_id, s.user_id, u.user_name, s.dept_id, d.dept_name, s.work_date,
-        s.shift_id, sh.shift_name, s.rest_type, s.schedule_remark
-        from hr_schedule s
-        left join sys_user u on u.user_id = s.user_id
-        left join sys_dept d on d.dept_id = s.dept_id
-        left join hr_shift sh on sh.shift_id = s.shift_id
+        <include refid="selectHrScheduleVo"/>
         where s.shift_id = #{shiftId}
-        order by s.work_date desc, s.user_id asc
+        order by s.work_date desc, u.login_name asc
     </select>
 
     <delete id="deleteByShiftAndUser">

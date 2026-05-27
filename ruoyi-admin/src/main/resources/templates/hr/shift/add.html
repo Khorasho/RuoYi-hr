@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh" xmlns:th="http://www.thymeleaf.org"
+      th:with="yesNoList=${@dict.getType('hr_yes_no')},scheduleModeList=${@dict.getType('hr_shift_schedule_mode')}">
 <head>
     <th:block th:include="include :: header('新增班次')"/>
-    <th:block th:include="include :: datetimepicker-css"/>
 </head>
 <body class="white-bg">
 <div class="main-content">
@@ -31,11 +31,39 @@
         <div class="row">
             <div class="col-sm-6">
                 <div class="form-group">
+                    <label class="col-sm-4 control-label">排班模式：</label>
+                    <div class="col-sm-8">
+                        <select id="scheduleMode" name="scheduleMode" class="form-control">
+                            <option th:each="dict : ${scheduleModeList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}" th:selected="${dict.dictValue == 'WEEKLY'}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 rotation-config">
+                <div class="form-group">
+                    <label class="col-sm-5 control-label">上班天数：</label>
+                    <div class="col-sm-7">
+                        <input type="number" id="rotationWorkDays" name="rotationWorkDays" class="form-control" min="1" placeholder="如 2">
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 rotation-config">
+                <div class="form-group">
+                    <label class="col-sm-5 control-label">休息天数：</label>
+                    <div class="col-sm-7">
+                        <input type="number" id="rotationRestDays" name="rotationRestDays" class="form-control" min="1" placeholder="如 1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
                     <label class="col-sm-4 control-label is-required">岗位选择：</label>
                     <div class="col-sm-8">
                         <div class="input-group">
-                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()"
-                                   placeholder="请选择岗位" readonly required>
+                            <input id="postTypeName" type="text" class="form-control" onclick="selectPostTree()" placeholder="请选择岗位" readonly required>
                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
                         </div>
                         <input id="postType" name="postType" type="hidden"/>
@@ -61,11 +89,11 @@
                 <div class="form-group">
                     <label class="col-sm-2 control-label is-required">每周上班日：</label>
                     <div class="col-sm-10">
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0"> 周一</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1"> 周二</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2"> 周三</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3"> 周四</label>
-                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4"> 周五</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="0" checked> 周一</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="1" checked> 周二</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="2" checked> 周三</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="3" checked> 周四</label>
+                        <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="4" checked> 周五</label>
                         <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="5"> 周六</label>
                         <label style="margin-right:12px;"><input type="checkbox" class="workday" data-index="6"> 周日</label>
                         <input type="hidden" id="workdayMask" name="workdayMask" value="1111100">
@@ -81,21 +109,33 @@
             </div>
         </div>
 
-        <h4 class="form-header h4">班次时段</h4>
+        <h4 class="form-header h4">班段配置</h4>
         <div class="row">
             <div class="col-sm-12">
-                <table class="table table-bordered" id="periodTable">
-                    <thead>
-                    <tr>
-                        <th style="width:80px;">序号</th>
-                        <th>开始时间</th>
-                        <th>结束时间</th>
-                        <th style="width:100px;">操作</th>
-                    </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="addPeriodRow()"><i class="fa fa-plus"></i> 增加时段</a>
+                <div class="alert alert-info" style="margin-bottom: 10px;">
+                    一条班次可配置多个班段。每个班段分别设置上下班时间、有效打卡窗口、是否要求上/下班打卡，可覆盖 2 卡、4 卡、6 卡等场景。
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="periodTable">
+                        <thead>
+                        <tr>
+                            <th style="width:60px;">序号</th>
+                            <th style="width:120px;">班段名称</th>
+                            <th style="width:110px;">上班时间</th>
+                            <th style="width:110px;">下班时间</th>
+                            <th style="width:120px;">有效开始</th>
+                            <th style="width:120px;">有效结束</th>
+                            <th style="width:90px;">上班打卡</th>
+                            <th style="width:90px;">下班打卡</th>
+                            <th style="width:80px;">跨天</th>
+                            <th>备注</th>
+                            <th style="width:90px;">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" onclick="addPeriodRow()"><i class="fa fa-plus"></i> 增加班段</a>
             </div>
         </div>
     </form>
@@ -108,15 +148,17 @@
 </div>
 
 <th:block th:include="include :: footer"/>
-<th:block th:include="include :: datetimepicker-js"/>
-<script>
+<script th:inline="javascript">
     var prefix = ctx + "hr/shift";
+    var yesNoDatas = [[${@dict.getType('hr_yes_no')}]];
+    var timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
     $(function () {
         setWorkdayByMask("1111100");
         addPeriodRow();
         $("#shiftName").on("blur", generateShiftCode);
         $(".workday").on("change", buildWorkdayMask);
+        $("#scheduleMode").on("change", toggleScheduleMode);
         $("#form-shift-add").validate({
             onkeyup: false,
             focusCleanup: true,
@@ -126,6 +168,7 @@
                 postType: {required: true}
             }
         });
+        toggleScheduleMode();
     });
 
     function generateShiftCode() {
@@ -190,15 +233,42 @@
         $("#workdayMask").val(mask);
     }
 
-    function addPeriodRow(startTime, endTime) {
+    function toggleScheduleMode() {
+        var rotation = $("#scheduleMode").val() === "ROTATION";
+        $(".rotation-config").toggle(rotation);
+        if (!rotation) {
+            $("#rotationWorkDays").val("");
+            $("#rotationRestDays").val("");
+        }
+    }
+
+    function addPeriodRow(period) {
+        period = period || {};
         var index = $("#periodTable tbody tr").length + 1;
-        var tr = "";
-        tr += "<tr><td class='text-center seq'>" + index + "</td>";
-        tr += "<td><input type='text' name='periodStart' class='form-control period-time' placeholder='HH:mm' value='" + (startTime || "") + "' required></td>";
-        tr += "<td><input type='text' name='periodEnd' class='form-control period-time' placeholder='HH:mm' value='" + (endTime || "") + "' required></td>";
-        tr += "<td class='text-center'><a href='javascript:void(0)' class='btn btn-danger btn-xs' onclick='removePeriodRow(this)'><i class='fa fa-remove'></i></a></td></tr>";
+        var segmentName = period.segmentName || ("第" + index + "段");
+        var startTime = period.startTime || "";
+        var endTime = period.endTime || "";
+        var validBegin = period.validBeginTime || startTime;
+        var validEnd = period.validEndTime || endTime;
+        var needInPunch = period.needInPunch || "1";
+        var needOutPunch = period.needOutPunch || "1";
+        var crossDay = period.crossDay || "0";
+        var segmentRemark = period.segmentRemark || "";
+        var tr = '';
+        tr += '<tr>';
+        tr += '<td class="text-center seq">' + index + '</td>';
+        tr += '<td><input type="text" name="segmentName" class="form-control" value="' + segmentName + '" maxlength="32"></td>';
+        tr += '<td><input type="text" name="periodStart" class="form-control shift-time-input" placeholder="HH:mm" maxlength="5" autocomplete="off" value="' + startTime + '" required></td>';
+        tr += '<td><input type="text" name="periodEnd" class="form-control shift-time-input" placeholder="HH:mm" maxlength="5" autocomplete="off" value="' + endTime + '" required></td>';
+        tr += '<td><input type="text" name="validBegin" class="form-control shift-time-input" placeholder="HH:mm" maxlength="5" autocomplete="off" value="' + validBegin + '" required></td>';
+        tr += '<td><input type="text" name="validEnd" class="form-control shift-time-input" placeholder="HH:mm" maxlength="5" autocomplete="off" value="' + validEnd + '" required></td>';
+        tr += '<td><select name="needInPunch" class="form-control">' + buildYesNoOptions(needInPunch) + '</select></td>';
+        tr += '<td><select name="needOutPunch" class="form-control">' + buildYesNoOptions(needOutPunch) + '</select></td>';
+        tr += '<td><select name="crossDay" class="form-control">' + buildYesNoOptions(crossDay) + '</select></td>';
+        tr += '<td><input type="text" name="segmentRemark" class="form-control" value="' + segmentRemark + '" maxlength="100"></td>';
+        tr += '<td class="text-center"><a href="javascript:void(0)" class="btn btn-danger btn-xs" onclick="removePeriodRow(this)"><i class="fa fa-remove"></i></a></td>';
+        tr += '</tr>';
         $("#periodTable tbody").append(tr);
-        initTimePicker();
     }
 
     function removePeriodRow(btn) {
@@ -209,21 +279,48 @@
     function reindexRows() {
         $("#periodTable tbody tr").each(function (i) {
             $(this).find(".seq").text(i + 1);
+            var nameInput = $(this).find("input[name='segmentName']");
+            if ($.common.isEmpty($.common.trim(nameInput.val())) || /^第\d+段$/.test($.common.trim(nameInput.val()))) {
+                nameInput.val("第" + (i + 1) + "段");
+            }
         });
     }
 
-    function initTimePicker() {
-        $(".period-time").datetimepicker("remove");
-        $(".period-time").datetimepicker({
-            format: "hh:ii",
-            startView: 1,
-            minView: 0,
-            maxView: 1,
-            autoclose: true,
-            todayBtn: false,
-            minuteStep: 5,
-            language: "zh-CN"
+    function buildYesNoOptions(selectedValue) {
+        var html = '';
+        $.each(yesNoDatas || [], function (idx, item) {
+            var selected = item.dictValue === selectedValue ? ' selected' : '';
+            html += '<option value="' + item.dictValue + '"' + selected + '>' + item.dictLabel + '</option>';
         });
+        return html;
+    }
+
+    function validatePeriods() {
+        if ($("#periodTable tbody tr").length === 0) {
+            $.modal.alertWarning("请至少配置一个班段");
+            return false;
+        }
+        var valid = true;
+        $("#periodTable tbody tr").each(function () {
+            $(this).find("input[name='periodStart'], input[name='periodEnd'], input[name='validBegin'], input[name='validEnd']").each(function () {
+                var value = $.common.trim($(this).val());
+                if ($.common.isEmpty(value) || !timePattern.test(value)) {
+                    valid = false;
+                    $(this).addClass("is-invalid");
+                } else {
+                    $(this).removeClass("is-invalid");
+                }
+            });
+            var needIn = $(this).find("select[name='needInPunch']").val();
+            var needOut = $(this).find("select[name='needOutPunch']").val();
+            if (needIn !== "1" && needOut !== "1") {
+                valid = false;
+            }
+        });
+        if (!valid) {
+            $.modal.alertWarning("请检查班段配置：时间必须为 HH:mm，且每个班段至少保留一个打卡节点");
+        }
+        return valid;
     }
 
     function submitHandler() {
@@ -234,6 +331,15 @@
         if ($.common.isEmpty($("#postType").val())) {
             $.modal.alertWarning("请选择岗位");
             return;
+        }
+        if (!validatePeriods()) {
+            return;
+        }
+        if ($("#scheduleMode").val() === "ROTATION") {
+            if ($.common.isEmpty($("#rotationWorkDays").val()) || $.common.isEmpty($("#rotationRestDays").val())) {
+                $.modal.alertWarning("轮班模式下请填写上班天数和休息天数");
+                return;
+            }
         }
         var data = $("#form-shift-add").serializeArray();
         data.push({name: "status", value: $("#status").is(":checked") ? 0 : 1});

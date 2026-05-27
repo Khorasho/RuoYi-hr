@@ -30,10 +30,13 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.framework.shiro.service.SysPasswordService;
 import com.ruoyi.framework.shiro.util.AuthorizationUtils;
+import com.ruoyi.system.domain.hr.HrEmployeeSetting;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysPostService;
 import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
+import com.ruoyi.system.service.hr.IHrEmployeeSettingService;
+import com.ruoyi.system.service.hr.IHrScheduleService;
 
 /**
  * 用户信息
@@ -60,6 +63,12 @@ public class SysUserController extends BaseController
 
     @Autowired
     private SysPasswordService passwordService;
+
+    @Autowired
+    private IHrEmployeeSettingService employeeSettingService;
+
+    @Autowired
+    private IHrScheduleService scheduleService;
 
     @RequiresPermissions("system:user:view")
     @GetMapping()
@@ -135,22 +144,33 @@ public class SysUserController extends BaseController
         roleService.checkRoleDataScope(user.getRoleIds());
         if (!userService.checkLoginNameUnique(user))
         {
-            return error("新增用户'" + user.getLoginName() + "'失败，登录账号已存在");
+            return error("新增员工'" + user.getLoginName() + "'失败，工号已存在");
         }
         else if (StringUtils.isNotEmpty(user.getPhonenumber()) && !userService.checkPhoneUnique(user))
         {
-            return error("新增用户'" + user.getLoginName() + "'失败，手机号码已存在");
+            return error("新增员工'" + user.getLoginName() + "'失败，手机号已存在");
         }
         else if (StringUtils.isNotEmpty(user.getEmail()) && !userService.checkEmailUnique(user))
         {
-            return error("新增用户'" + user.getLoginName() + "'失败，邮箱账号已存在");
+            return error("新增员工'" + user.getLoginName() + "'失败，邮箱已存在");
+        }
+        else if (user.getEntryDate() == null)
+        {
+            return error("请选择入职日期");
         }
         user.setSalt(ShiroUtils.randomSalt());
         user.setPassword(passwordService.encryptPassword(user.getLoginName(), user.getPassword(), user.getSalt()));
         user.setPwdUpdateDate(DateUtils.getNowDate());
         user.setCreateBy(getLoginName());
-        return toAjax(userService.insertUser(user));
+        int rows = userService.insertUser(user);
+        if (rows > 0)
+        {
+            employeeSettingService.saveOnboardingInfo(user.getUserId(), user.getEntryDate(), getLoginName());
+            scheduleService.syncEmployeeFutureWindow(user.getUserId(), 365, getLoginName());
+        }
+        return toAjax(rows);
     }
+
 
     /**
      * 修改用户
@@ -161,7 +181,14 @@ public class SysUserController extends BaseController
     {
         userService.checkUserDataScope(userId);
         List<SysRole> roles = roleService.selectRolesByUserId(userId);
-        mmap.put("user", userService.selectUserById(userId));
+        SysUser user = userService.selectUserById(userId);
+        HrEmployeeSetting employeeSetting = employeeSettingService.selectHrEmployeeSettingByUserId(userId);
+        if (employeeSetting != null)
+        {
+            user.setEntryDate(employeeSetting.getEntryDate());
+            user.setLeaveDate(employeeSetting.getLeaveDate());
+        }
+        mmap.put("user", user);
         mmap.put("roles", ShiroUtils.isAdmin(userId) ? roles : roles.stream().filter(r -> !r.isAdmin()).collect(Collectors.toList()));
         mmap.put("posts", postService.selectPostsByUserId(userId));
         return prefix + "/edit";
@@ -196,19 +223,65 @@ public class SysUserController extends BaseController
         roleService.checkRoleDataScope(user.getRoleIds());
         if (!userService.checkLoginNameUnique(user))
         {
-            return error("修改用户'" + user.getLoginName() + "'失败，登录账号已存在");
+            return error("修改员工'" + user.getLoginName() + "'失败，工号已存在");
         }
         else if (StringUtils.isNotEmpty(user.getPhonenumber()) && !userService.checkPhoneUnique(user))
         {
-            return error("修改用户'" + user.getLoginName() + "'失败，手机号码已存在");
+            return error("修改员工'" + user.getLoginName() + "'失败，手机号已存在");
         }
         else if (StringUtils.isNotEmpty(user.getEmail()) && !userService.checkEmailUnique(user))
         {
-            return error("修改用户'" + user.getLoginName() + "'失败，邮箱账号已存在");
+            return error("修改员工'" + user.getLoginName() + "'失败，邮箱已存在");
+        }
+        else if (user.getEntryDate() == null)
+        {
+            return error("请选择入职日期");
         }
         user.setUpdateBy(getLoginName());
         AuthorizationUtils.clearAllCachedAuthorizationInfo();
-        return toAjax(userService.updateUser(user));
+        int rows = userService.updateUser(user);
+        if (rows > 0)
+        {
+            employeeSettingService.saveOnboardingInfo(user.getUserId(), user.getEntryDate(), getLoginName());
+            scheduleService.syncEmployeeFutureWindow(user.getUserId(), 365, getLoginName());
+        }
+        return toAjax(rows);
+    }
+
+
+    @RequiresPermissions("system:user:edit")
+    @GetMapping("/leave/{userId}")
+    public String leave(@PathVariable("userId") Long userId, ModelMap mmap)
+    {
+        userService.checkUserDataScope(userId);
+        SysUser user = userService.selectUserById(userId);
+        HrEmployeeSetting employeeSetting = employeeSettingService.selectHrEmployeeSettingByUserId(userId);
+        if (employeeSetting != null)
+        {
+            user.setEntryDate(employeeSetting.getEntryDate());
+            user.setLeaveDate(employeeSetting.getLeaveDate());
+        }
+        mmap.put("user", user);
+        return prefix + "/leave";
+    }
+
+    @RequiresPermissions("system:user:edit")
+    @Log(title = "员工离职", businessType = BusinessType.UPDATE)
+    @PostMapping("/leave")
+    @ResponseBody
+    public AjaxResult leaveSave(SysUser user)
+    {
+        userService.checkUserAllowed(user);
+        userService.checkUserDataScope(user.getUserId());
+        if (user.getLeaveDate() == null)
+        {
+            return error("请选择离职日期");
+        }
+        employeeSettingService.saveDepartureInfo(user.getUserId(), user.getLeaveDate(), user.getRemark(), getLoginName());
+        user.setStatus("1");
+        userService.changeStatus(user);
+        scheduleService.syncEmployeeFutureWindow(user.getUserId(), 365, getLoginName());
+        return success("离职办理成功，已停止该员工后续排班");
     }
 
     @RequiresPermissions("system:user:resetPwd")

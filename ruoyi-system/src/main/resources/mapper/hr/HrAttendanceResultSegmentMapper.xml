@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrAttendanceResultSegmentMapper">
+    <resultMap type="HrAttendanceResultSegment" id="HrAttendanceResultSegmentResult">
+        <id property="segmentResultId" column="segment_result_id"/>
+        <result property="resultId" column="result_id"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="workDate" column="work_date"/>
+        <result property="shiftId" column="shift_id"/>
+        <result property="segmentNo" column="segment_no"/>
+        <result property="segmentName" column="segment_name"/>
+        <result property="planInTime" column="plan_in_time"/>
+        <result property="planOutTime" column="plan_out_time"/>
+        <result property="validBeginTime" column="valid_begin_time"/>
+        <result property="validEndTime" column="valid_end_time"/>
+        <result property="actualInTime" column="actual_in_time"/>
+        <result property="actualOutTime" column="actual_out_time"/>
+        <result property="needInPunch" column="need_in_punch"/>
+        <result property="needOutPunch" column="need_out_punch"/>
+        <result property="punchCount" column="punch_count"/>
+        <result property="segmentStatus" column="segment_status"/>
+        <result property="lateFlag" column="late_flag"/>
+        <result property="earlyFlag" column="early_flag"/>
+        <result property="missCardFlag" column="miss_card_flag"/>
+        <result property="absentFlag" column="absent_flag"/>
+        <result property="workMinutes" column="work_minutes"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <insert id="insertHrAttendanceResultSegment" parameterType="HrAttendanceResultSegment" useGeneratedKeys="true" keyProperty="segmentResultId">
+        insert into hr_attendance_result_segment(
+            result_id, schedule_id, user_id, work_date, shift_id, segment_no, segment_name,
+            plan_in_time, plan_out_time, valid_begin_time, valid_end_time,
+            actual_in_time, actual_out_time, need_in_punch, need_out_punch,
+            punch_count, segment_status, late_flag, early_flag, miss_card_flag, absent_flag,
+            work_minutes, remark, create_by, create_time
+        )
+        values(
+            #{resultId}, #{scheduleId}, #{userId}, #{workDate}, #{shiftId}, #{segmentNo}, #{segmentName},
+            #{planInTime}, #{planOutTime}, #{validBeginTime}, #{validEndTime},
+            #{actualInTime}, #{actualOutTime}, #{needInPunch}, #{needOutPunch},
+            #{punchCount}, #{segmentStatus}, #{lateFlag}, #{earlyFlag}, #{missCardFlag}, #{absentFlag},
+            #{workMinutes}, #{remark}, #{createBy}, sysdate()
+        )
+    </insert>
+
+    <delete id="deleteByDateRange">
+        delete from hr_attendance_result_segment
+        where work_date &gt;= #{beginDate}
+          and work_date &lt;= #{endDate}
+    </delete>
+
+    <delete id="deleteByResultId">
+        delete from hr_attendance_result_segment where result_id = #{resultId}
+    </delete>
+
+    <select id="selectByResultId" resultMap="HrAttendanceResultSegmentResult">
+        select * from hr_attendance_result_segment where result_id = #{resultId} order by segment_no
+    </select>
+</mapper>

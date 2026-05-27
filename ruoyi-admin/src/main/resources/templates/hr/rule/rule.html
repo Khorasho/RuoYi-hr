@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro"
+      th:with="multiPunchStrategyList=${@dict.getType('hr_multi_punch_strategy')}">
 <head>
     <th:block th:include="include :: header('考勤规则')"/>
 </head>
@@ -34,19 +35,39 @@
                             <div class="col-sm-4">
                                 <input type="number" min="0" name="absentMinutes" class="form-control" th:field="*{absentMinutes}" required>
                             </div>
-                            <label class="col-sm-2 control-label">多次打卡策略：</label>
+                            <label class="col-sm-2 control-label">下班后封存(分钟)：</label>
                             <div class="col-sm-4">
-                                <select name="multiPunchStrategy" class="form-control m-b" th:field="*{multiPunchStrategy}">
-                                    <option value="EARLIEST_IN_LATEST_OUT">最早上班 + 最晚下班</option>
-                                </select>
+                                <input type="number" min="0" name="dayCloseMinutes" class="form-control" th:field="*{dayCloseMinutes}" required>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="col-sm-2 control-label">说明：</label>
+                            <label class="col-sm-2 control-label">多次打卡策略：</label>
+                            <div class="col-sm-4">
+                                <select name="multiPunchStrategy" class="form-control m-b" th:field="*{multiPunchStrategy}">
+                                    <option th:each="dict : ${multiPunchStrategyList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                                </select>
+                            </div>
+                            <label class="col-sm-2 control-label">推荐默认值：</label>
+                            <div class="col-sm-4">
+                                <p class="form-control-static text-muted">迟到10分钟，早退10分钟，旷工容差120分钟，封存120分钟。</p>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">规则说明：</label>
                             <div class="col-sm-10">
                                 <p class="form-control-static text-muted">
-                                    该页面用于配置简化规则引擎参数。修改后建议执行“月重算”，确保考勤结果与规则一致。
+                                    1. 当天未到封存时间时，考勤明细显示“待打卡”，避免值班中途被提前判异常。
+                                </p>
+                                <p class="form-control-static text-muted">
+                                    2. 到达封存时间后：无打卡记旷工，单次打卡记缺卡，两次及以上按迟到/早退规则判定。
+                                </p>
+                                <p class="form-control-static text-muted">
+                                    3. 旷工容差表示：实出勤分钟比应出勤分钟少多少分钟以上，系统记旷工。
+                                </p>
+                                <p class="form-control-static text-muted">
+                                    4. 保存规则后，系统会自动重算当月考勤明细，便于立即核对结果。
                                 </p>
                             </div>
                         </div>
@@ -64,7 +85,19 @@
     $(function () {
         $("#form-rule").validate({
             onkeyup: false,
-            focusCleanup: true
+            focusCleanup: true,
+            rules: {
+                lateMinutes: {required: true, min: 0, max: 240},
+                earlyMinutes: {required: true, min: 0, max: 240},
+                absentMinutes: {required: true, min: 0, max: 1440},
+                dayCloseMinutes: {required: true, min: 0, max: 1440}
+            },
+            messages: {
+                lateMinutes: {max: "建议不超过240分钟"},
+                earlyMinutes: {max: "建议不超过240分钟"},
+                absentMinutes: {max: "不得超过1440分钟"},
+                dayCloseMinutes: {max: "不得超过1440分钟"}
+            }
         });
     });
 

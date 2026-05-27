@@ -1,56 +1,59 @@
 <!DOCTYPE html>
-<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro"
+      th:with="restTypeList=${@dict.getType('hr_rest_type')},generateSourceList=${@dict.getType('hr_generate_source')},writeModeList=${@dict.getType('hr_schedule_write_mode')},yesNoList=${@dict.getType('hr_yes_no')}">
 <head>
-    <th:block th:include="include :: header('schedule')"/>
+    <th:block th:include="include :: header('排班管理')"/>
 </head>
 <body class="gray-bg">
 <div class="container-div">
     <div class="row">
         <div class="col-sm-12 search-collapse">
             <form id="schedule-form">
+                <input type="hidden" id="deptId" name="deptId"/>
                 <div class="select-list">
                     <ul>
                         <li>
-                            <input type="hidden" id="queryUserId" name="userId"/>
-                            <label>&#21592;&#24037;&#65306;</label>
-                            <div class="input-group" style="width: 200px;">
-                                <input type="text" id="queryUserName" class="form-control" placeholder="&#35831;&#36873;&#25321;&#21592;&#24037;"
-                                       onclick="selectQueryUser()" readonly>
-                                <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                            <label>工号：</label>
+                            <input type="text" name="loginName"/>
+                        </li>
+                        <li>
+                            <label>姓名：</label>
+                            <input type="text" name="userName"/>
+                        </li>
+                        <li>
+                            <label>部门：</label>
+                            <div class="input-group" style="width: 220px;">
+                                <input type="text" id="deptName" class="form-control" placeholder="请选择部门" readonly onclick="selectDeptTree()">
+                                <span class="input-group-addon" onclick="selectDeptTree()"><i class="fa fa-search"></i></span>
                             </div>
                         </li>
                         <li>
-                            <input type="hidden" id="queryDeptId" name="deptId"/>
-                            <label>&#37096;&#38376;&#65306;</label>
-                            <div class="input-group" style="width: 200px;">
-                                <input type="text" id="queryDeptName" class="form-control" placeholder="&#35831;&#36873;&#25321;&#37096;&#38376;"
-                                       onclick="selectQueryDeptTree()" readonly>
-                                <span class="input-group-addon"><i class="fa fa-search"></i></span>
-                            </div>
+                            <label>排班月份：</label>
+                            <input type="month" id="scheduleMonth" name="scheduleMonth" class="form-control" style="width: 180px; display: inline-block;"/>
                         </li>
                         <li>
-                            <label>&#25490;&#29677;&#26376;&#20221;&#65306;</label>
-                            <input type="month" id="scheduleMonth" class="form-control" style="width: 160px; display: inline-block;">
+                            <label>班次：</label>
+                            <input type="text" name="shiftName"/>
                         </li>
                         <li>
-                            <label>&#35206;&#30422;&#24050;&#25490;&#65306;</label>
-                            <label class="toggle-switch switch-solid" style="margin-top: 4px;">
-                                <input type="checkbox" id="overwriteGenerate" checked>
-                                <span></span>
-                            </label>
+                            <label>生成来源：</label>
+                            <select name="generateSource">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${generateSourceList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
                         </li>
                         <li class="select-time">
-                            <label>&#25490;&#29677;&#26085;&#26399;&#65306;</label>
-                            <input type="text" class="time-input" id="startDate" placeholder="&#24320;&#22987;&#26085;&#26399;" name="params[beginTime]"/>
+                            <label>排班日期：</label>
+                            <input type="text" class="time-input" id="startDate" placeholder="开始日期" name="params[beginTime]"/>
                             <span>-</span>
-                            <input type="text" class="time-input" id="endDate" placeholder="&#32467;&#26463;&#26085;&#26399;" name="params[endTime]"/>
+                            <input type="text" class="time-input" id="endDate" placeholder="结束日期" name="params[endTime]"/>
                         </li>
                         <li>
                             <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('schedule-form')">
-                                <i class="fa fa-search"></i>&nbsp;&#25628;&#32034;
+                                <i class="fa fa-search"></i> 搜索
                             </a>
                             <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
-                                <i class="fa fa-refresh"></i>&nbsp;&#37325;&#32622;
+                                <i class="fa fa-refresh"></i> 重置
                             </a>
                         </li>
                     </ul>
@@ -59,20 +62,23 @@
         </div>
 
         <div class="btn-group-sm" id="toolbar" role="group">
-            <a class="btn btn-info" href="javascript:void(0)" onclick="generateMonthly()" shiro:hasPermission="hr:schedule:add">
-                <i class="fa fa-calendar-plus-o"></i> &#29983;&#25104;&#26376;&#25490;&#29677;
+            <a class="btn btn-info" onclick="generateMonthly()" shiro:hasPermission="hr:schedule:generate">
+                <i class="fa fa-calendar"></i> 生成月排班
             </a>
-            <a class="btn btn-success" onclick="$.operate.addTab()" shiro:hasPermission="hr:schedule:add">
-                <i class="fa fa-plus"></i> &#26032;&#22686;
+            <a class="btn btn-success" onclick="updateSchedules()" shiro:hasPermission="hr:schedule:updateRange">
+                <i class="fa fa-refresh"></i> 更新排班
             </a>
-            <a class="btn btn-primary single disabled" onclick="$.operate.editTab()" shiro:hasPermission="hr:schedule:edit">
-                <i class="fa fa-edit"></i> &#20462;&#25913;
+            <a class="btn btn-primary" onclick="copySchedules()" shiro:hasPermission="hr:schedule:updateRange">
+                <i class="fa fa-copy"></i> 复制排班
             </a>
-            <a class="btn btn-danger multiple disabled" onclick="$.operate.removeAll()" shiro:hasPermission="hr:schedule:remove">
-                <i class="fa fa-remove"></i> &#21024;&#38500;
+            <a class="btn btn-default" onclick="copyLastWeek()" shiro:hasPermission="hr:schedule:updateRange">
+                <i class="fa fa-clone"></i> 复制上周
             </a>
-            <a class="btn btn-warning" onclick="$.table.exportExcel()" shiro:hasPermission="hr:schedule:export">
-                <i class="fa fa-download"></i> &#23548;&#20986;
+            <a class="btn btn-default" onclick="copyLastMonth()" shiro:hasPermission="hr:schedule:updateRange">
+                <i class="fa fa-files-o"></i> 复制上月
+            </a>
+            <a class="btn btn-default" onclick="syncFutureSevenDays()" shiro:hasPermission="hr:schedule:updateRange">
+                <i class="fa fa-clock-o"></i> 同步未来7天
             </a>
         </div>
 
@@ -87,172 +93,393 @@
     var editFlag = [[${@permission.hasPermi('hr:schedule:edit')}]];
     var removeFlag = [[${@permission.hasPermi('hr:schedule:remove')}]];
     var prefix = ctx + "hr/schedule";
+    var restTypeDatas = [[${@dict.getType('hr_rest_type')}]];
+    var generateSourceDatas = [[${@dict.getType('hr_generate_source')}]];
+    var writeModeDatas = [[${@dict.getType('hr_schedule_write_mode')}]];
+    var yesNoDatas = [[${@dict.getType('hr_yes_no')}]];
+    var weekdayTexts = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
     $(function () {
-        setCurrentMonth();
+        initDefaultMonth();
+        initDefaultDateRange();
+        initTable();
+        $.table.search("schedule-form");
+    });
 
+    function initTable() {
         var options = {
             url: prefix + "/list",
             createUrl: prefix + "/add",
             updateUrl: prefix + "/edit/{id}",
             removeUrl: prefix + "/remove",
             exportUrl: prefix + "/export",
-            modalName: "\u6392\u73ed",
+            modalName: "排班",
             formId: "schedule-form",
             sortName: "workDate",
             sortOrder: "desc",
+            uniqueId: "scheduleId",
             columns: [{
                 checkbox: true
             }, {
                 field: "scheduleId",
-                title: "ID"
+                title: "排班ID",
+                visible: false,
+                switchable: false
             }, {
                 field: "userId",
-                title: "\u5458\u5de5ID"
+                title: "用户ID",
+                visible: false,
+                switchable: false
+            }, {
+                field: "loginName",
+                title: "工号"
             }, {
                 field: "userName",
-                title: "\u59d3\u540d"
+                title: "姓名"
             }, {
                 field: "deptName",
-                title: "\u90e8\u95e8"
+                title: "部门"
             }, {
                 field: "workDate",
-                title: "\u6392\u73ed\u65e5\u671f",
-                sortable: true
+                title: "排班日期",
+                sortable: true,
+                formatter: function (value) {
+                    return formatDateValue(value);
+                }
+            }, {
+                field: "workWeekday",
+                title: "星期",
+                formatter: function (value, row) {
+                    return formatWeekday(row.workDate);
+                }
             }, {
                 field: "shiftName",
-                title: "\u73ed\u6b21"
+                title: "班次"
             }, {
                 field: "restType",
-                title: "\u4f11\u606f\u7c7b\u578b",
+                title: "休息类型",
                 formatter: function (value) {
                     return formatRestType(value);
                 }
             }, {
-                field: "scheduleRemark",
-                title: "\u5907\u6ce8"
+                field: "generateSource",
+                title: "生成来源",
+                formatter: function (value) {
+                    return formatGenerateSource(value);
+                }
             }, {
-                title: "\u64cd\u4f5c",
+                field: "manualModified",
+                title: "人工修改",
+                formatter: function (value) {
+                    return $.common.isEmpty(value) ? "-" : $.table.selectDictLabel(yesNoDatas, value);
+                }
+            }, {
+                field: "scheduleRemark",
+                title: "备注"
+            }, {
+                title: "操作",
                 align: "center",
                 formatter: function (value, row) {
                     var actions = [];
-                    actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="$.operate.editTab(\'' + row.scheduleId + '\')"><i class="fa fa-edit"></i>\u7f16\u8f91</a> ');
-                    actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.scheduleId + '\')"><i class="fa fa-remove"></i>\u5220\u9664</a>');
+                    actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="$.operate.editTab(\'' + row.scheduleId + '\')"><i class="fa fa-edit"></i>编辑</a> ');
+                    actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.scheduleId + '\')"><i class="fa fa-remove"></i>删除</a>');
                     return actions.join("");
                 }
             }]
         };
         $.table.init(options);
-    });
+    }
+
+    function initDefaultMonth() {
+        if (!$.common.isEmpty($("#scheduleMonth").val())) {
+            return;
+        }
+        $("#scheduleMonth").val(getCurrentMonthValue());
+    }
+
+    function initDefaultDateRange() {
+        if (!$.common.isEmpty($("#startDate").val()) || !$.common.isEmpty($("#endDate").val())) {
+            return;
+        }
+        var today = formatCurrentDate();
+        $("#startDate").val(today);
+        $("#endDate").val(today);
+    }
+
+    function padMonth(value) {
+        return value < 10 ? "0" + value : "" + value;
+    }
+
+    function formatCurrentDate() {
+        var now = new Date();
+        return now.getFullYear() + "-" + padMonth(now.getMonth() + 1) + "-" + padMonth(now.getDate());
+    }
+
+    function getCurrentMonthValue() {
+        var now = new Date();
+        return now.getFullYear() + "-" + padMonth(now.getMonth() + 1);
+    }
+
+    function formatDateValue(value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        return String(value).substring(0, 10);
+    }
+
+    function formatWeekday(value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        var dateStr = String(value).substring(0, 10);
+        var dateObj = new Date(dateStr + "T00:00:00");
+        if (isNaN(dateObj.getTime())) {
+            return "-";
+        }
+        return weekdayTexts[dateObj.getDay()];
+    }
 
     function formatRestType(value) {
         if ($.common.isEmpty(value)) {
-            return "\u6b63\u5e38\u51fa\u52e4";
+            return "正常出勤";
         }
-        if (value === "REST") {
-            return "\u4f11\u606f";
-        }
-        if (value === "HALF_REST") {
-            return "\u534a\u5929\u4f11";
-        }
-        return value;
+        return $.table.selectDictLabel(restTypeDatas, value) || value;
     }
 
-    function setCurrentMonth() {
-        var now = new Date();
-        var month = now.getMonth() + 1;
-        $("#scheduleMonth").val(now.getFullYear() + "-" + (month < 10 ? "0" + month : month));
-    }
-
-    function generateMonthly() {
-        var month = $("#scheduleMonth").val();
-        if ($.common.isEmpty(month)) {
-            $.modal.alertWarning("\u8bf7\u5148\u9009\u62e9\u6392\u73ed\u6708\u4efd");
-            return;
-        }
-        var data = {
-            month: month,
-            deptId: $("#queryDeptId").val(),
-            userId: $("#queryUserId").val(),
-            overwrite: $("#overwriteGenerate").is(":checked")
-        };
-        $.modal.confirm("\u786e\u8ba4\u6309\u5f53\u524d\u7b5b\u9009\u6761\u4ef6\u751f\u6210 " + month + " \u6708\u6392\u73ed\u5417\uff1f", function () {
-            $.operate.post(prefix + "/generateMonthly", data);
-        });
-    }
-
-    function selectQueryDeptTree() {
-        var deptId = $.common.isEmpty($("#queryDeptId").val()) ? "100" : $("#queryDeptId").val();
-        $.modal.openOptions({
-            title: "\u9009\u62e9\u90e8\u95e8",
-            width: "380",
-            url: prefix + "/selectDeptTree/" + deptId,
-            btn: ['<i class="fa fa-check"></i> \u786e\u8ba4', '<i class="fa fa-trash-o"></i> \u6e05\u9664', '<i class="fa fa-close"></i> \u5173\u95ed'],
-            btn2: function (index) {
-                $("#queryDeptId").val("");
-                $("#queryDeptName").val("");
-                $("#queryUserId").val("");
-                $("#queryUserName").val("");
-                $.modal.close(index);
-            },
-            callBack: doQueryDeptSubmit
-        });
-    }
-
-    function doQueryDeptSubmit(index) {
-        var body = $.modal.getChildFrame(index);
-        $("#queryDeptId").val(body.find("#treeId").val());
-        $("#queryDeptName").val(body.find("#treeName").val());
-        $("#queryUserId").val("");
-        $("#queryUserName").val("");
-        $.modal.close(index);
-    }
-
-    function selectQueryUser() {
-        var url = prefix + "/selectUser";
-        var deptId = $("#queryDeptId").val();
-        if ($.common.isNotEmpty(deptId)) {
-            url += "?deptId=" + deptId;
-        }
-        $.modal.openOptions({
-            title: "\u9009\u62e9\u5458\u5de5",
-            width: "1000",
-            url: url,
-            callBack: doQueryUserSubmit
-        });
-    }
-
-    function doQueryUserSubmit(index, layero) {
-        var rows = layero.find("iframe")[0].contentWindow.getSelections();
-        if (!rows || rows.length === 0) {
-            $.modal.alertWarning("\u8bf7\u9009\u62e9\u5458\u5de5");
-            return;
-        }
-        fillQueryUser(rows[0]);
-        $.modal.close(index);
-    }
-
-    function fillQueryUser(row) {
-        var deptId = row.deptId || "";
-        var deptName = "";
-        if (row.dept) {
-            deptId = deptId || row.dept.deptId || "";
-            deptName = row.dept.deptName || "";
-        }
-        $("#queryUserId").val(row.userId || "");
-        $("#queryUserName").val(row.userName || "");
-        $("#queryDeptId").val(deptId);
-        $("#queryDeptName").val(deptName);
+    function formatGenerateSource(value) {
+        return $.common.isEmpty(value) ? "-" : $.table.selectDictLabel(generateSourceDatas, value);
     }
 
     function resetQuery() {
         $("#schedule-form")[0].reset();
-        $("#queryUserId").val("");
-        $("#queryDeptId").val("");
-        setCurrentMonth();
-        $("#overwriteGenerate").prop("checked", true);
+        $("#deptId").val("");
+        $("#deptName").val("");
+        initDefaultMonth();
+        initDefaultDateRange();
         $.table.search("schedule-form");
+    }
+
+    function selectDeptTree() {
+        var deptId = $.common.isEmpty($("#deptId").val()) ? 0 : $("#deptId").val();
+        $.modal.openOptions({
+            title: "选择部门",
+            width: "380",
+            url: prefix + "/selectDeptTree/" + deptId,
+            callBack: doDeptSubmit
+        });
+    }
+
+    function doDeptSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#deptId").val(body.find("#treeId").val());
+        $("#deptName").val(body.find("#treeName").val());
+        $.modal.close(index);
+    }
+
+    function generateMonthly() {
+        openMonthDialog("生成月排班", function (month, overwrite) {
+            $.modal.loading("正在生成月排班，请稍候...");
+            $.post(prefix + "/generateMonthly", {
+                month: month,
+                deptId: $("#deptId").val(),
+                overwrite: overwrite
+            }, function (result) {
+                $.modal.closeLoading();
+                $.operate.ajaxSuccess(result);
+                if (result.code === 0) {
+                    $("#scheduleMonth").val(month);
+                    $.table.search("schedule-form");
+                }
+            });
+        });
+    }
+
+    function updateSchedules() {
+        openRangeDialog("更新排班", function (formData) {
+            formData.deptId = $("#deptId").val();
+            $.modal.loading("正在更新排班，请稍候...");
+            $.post(prefix + "/updateRange", formData, function (result) {
+                $.modal.closeLoading();
+                $.operate.ajaxSuccess(result);
+                if (result.code === 0) {
+                    $.table.search("schedule-form");
+                }
+            });
+        });
+    }
+
+    function copySchedules() {
+        openCopyDialog("复制排班", function (formData) {
+            formData.deptId = $("#deptId").val();
+            $.modal.loading("正在复制排班，请稍候...");
+            $.post(prefix + "/copyRange", formData, function (result) {
+                $.modal.closeLoading();
+                $.operate.ajaxSuccess(result);
+                if (result.code === 0) {
+                    $.table.search("schedule-form");
+                }
+            });
+        });
+    }
+
+    function copyLastWeek() {
+        fillCopyShortcut(7);
+    }
+
+    function copyLastMonth() {
+        fillCopyShortcut(30);
+    }
+
+    function fillCopyShortcut(days) {
+        var sourceEnd = new Date();
+        var sourceBegin = new Date();
+        sourceBegin.setDate(sourceEnd.getDate() - days + 1);
+        var targetBegin = new Date();
+        targetBegin.setDate(sourceEnd.getDate() + 1);
+        var targetEnd = new Date();
+        targetEnd.setDate(targetBegin.getDate() + days - 1);
+        openCopyDialog("复制排班", null, {
+            sourceBeginDate: formatJsDate(sourceBegin),
+            sourceEndDate: formatJsDate(sourceEnd),
+            targetBeginDate: formatJsDate(targetBegin),
+            targetEndDate: formatJsDate(targetEnd)
+        });
+    }
+
+    function syncFutureSevenDays() {
+        $.operate.post(prefix + "/syncFutureSevenDays");
+    }
+
+    function openMonthDialog(title, callback) {
+        var currentMonth = $.common.isEmpty($("#scheduleMonth").val()) ? getCurrentMonthValue() : $("#scheduleMonth").val();
+        var content = ''
+            + '<div style="padding: 20px 20px 0 20px;">'
+            + '  <div class="form-group">'
+            + '    <label class="control-label">月份</label>'
+            + '    <input id="dialogMonth" type="month" class="form-control" value="' + currentMonth + '"/>'
+            + '  </div>'
+            + '  <div class="checkbox-custom">'
+            + '    <input id="dialogOverwrite" type="checkbox" checked>'
+            + '    <label for="dialogOverwrite">覆盖已有系统排班</label>'
+            + '  </div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            area: ["420px", "230px"],
+            title: title,
+            content: content,
+            btn: ["确定", "取消"],
+            yes: function (index) {
+                var month = $("#dialogMonth").val();
+                if ($.common.isEmpty(month)) {
+                    $.modal.alertWarning("请选择月份");
+                    return;
+                }
+                callback(month, $("#dialogOverwrite").is(":checked"));
+                layer.close(index);
+            }
+        });
+    }
+
+    function openRangeDialog(title, callback) {
+        var defaultBeginDate = $.common.isEmpty($("#startDate").val()) ? formatCurrentDate() : $("#startDate").val();
+        var defaultEndDate = $.common.isEmpty($("#endDate").val()) ? formatCurrentDate() : $("#endDate").val();
+        var content = ''
+            + '<div style="padding: 20px 20px 0 20px;">'
+            + '  <div class="form-group"><label class="control-label">开始日期</label><input id="rangeBeginDate" type="date" class="form-control" value="' + defaultBeginDate + '"></div>'
+            + '  <div class="form-group"><label class="control-label">结束日期</label><input id="rangeEndDate" type="date" class="form-control" value="' + defaultEndDate + '"></div>'
+            + '  <div class="form-group"><label class="control-label">更新模式</label>'
+            + '    <select id="rangeMode" class="form-control">' + buildDictOptions(writeModeDatas, "OVERWRITE_SYSTEM") + '</select>'
+            + '  </div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            area: ["420px", "320px"],
+            title: title,
+            content: content,
+            btn: ["确定", "取消"],
+            yes: function (index) {
+                var beginDate = $("#rangeBeginDate").val();
+                var endDate = $("#rangeEndDate").val();
+                if ($.common.isEmpty(beginDate) || $.common.isEmpty(endDate)) {
+                    $.modal.alertWarning("请选择完整的日期范围");
+                    return;
+                }
+                callback({
+                    beginDate: beginDate,
+                    endDate: endDate,
+                    mode: $("#rangeMode").val()
+                });
+                layer.close(index);
+            }
+        });
+    }
+
+    function openCopyDialog(title, callback, defaults) {
+        defaults = defaults || {};
+        var content = ''
+            + '<div style="padding: 20px 20px 0 20px;">'
+            + '  <div class="form-group"><label class="control-label">源开始日期</label><input id="sourceBeginDate" type="date" class="form-control" value="' + (defaults.sourceBeginDate || "") + '"></div>'
+            + '  <div class="form-group"><label class="control-label">源结束日期</label><input id="sourceEndDate" type="date" class="form-control" value="' + (defaults.sourceEndDate || "") + '"></div>'
+            + '  <div class="form-group"><label class="control-label">目标开始日期</label><input id="targetBeginDate" type="date" class="form-control" value="' + (defaults.targetBeginDate || "") + '"></div>'
+            + '  <div class="form-group"><label class="control-label">目标结束日期</label><input id="targetEndDate" type="date" class="form-control" value="' + (defaults.targetEndDate || "") + '"></div>'
+            + '  <div class="form-group"><label class="control-label">复制模式</label>'
+            + '    <select id="copyMode" class="form-control">' + buildDictOptions(writeModeDatas, "OVERWRITE_SYSTEM") + '</select>'
+            + '  </div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            area: ["460px", "470px"],
+            title: title,
+            content: content,
+            btn: ["确定", "取消"],
+            yes: function (index) {
+                var formData = {
+                    sourceBeginDate: $("#sourceBeginDate").val(),
+                    sourceEndDate: $("#sourceEndDate").val(),
+                    targetBeginDate: $("#targetBeginDate").val(),
+                    targetEndDate: $("#targetEndDate").val(),
+                    mode: $("#copyMode").val()
+                };
+                if ($.common.isEmpty(formData.sourceBeginDate) || $.common.isEmpty(formData.sourceEndDate)
+                    || $.common.isEmpty(formData.targetBeginDate) || $.common.isEmpty(formData.targetEndDate)) {
+                    $.modal.alertWarning("请填写完整的复制日期范围");
+                    return;
+                }
+                if (callback) {
+                    callback(formData);
+                } else {
+                    formData.deptId = $("#deptId").val();
+                    $.modal.loading("正在复制排班，请稍候...");
+                    $.post(prefix + "/copyRange", formData, function (result) {
+                        $.modal.closeLoading();
+                        $.operate.ajaxSuccess(result);
+                        if (result.code === 0) {
+                            $.table.search("schedule-form");
+                        }
+                    });
+                }
+                layer.close(index);
+            }
+        });
+    }
+
+    function formatJsDate(date) {
+        var y = date.getFullYear();
+        var m = padMonth(date.getMonth() + 1);
+        var d = padMonth(date.getDate());
+        return y + "-" + m + "-" + d;
+    }
+
+    function buildDictOptions(datas, selectedValue) {
+        var html = "";
+        $.each(datas || [], function (idx, item) {
+            var selected = item.dictValue === selectedValue ? ' selected' : '';
+            html += '<option value="' + item.dictValue + '"' + selected + '>' + item.dictLabel + '</option>';
+        });
+        return html;
     }
 </script>
 </body>
 </html>
+

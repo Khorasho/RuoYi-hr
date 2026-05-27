@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro"
+      th:with="punchTypeList=${@dict.getType('hr_punch_type')},sourceTypeList=${@dict.getType('hr_attendance_source')},recordStatusList=${@dict.getType('hr_record_status')}">
+<head>
+    <th:block th:include="include :: header('考勤打卡记录')"/>
+    <style>
+        .record-action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 12px;
+        }
+
+        .record-action-bar .btn {
+            margin-right: 0;
+        }
+
+        .record-col-time {
+            min-width: 148px;
+        }
+
+        .record-col-main {
+            min-width: 90px;
+        }
+    </style>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="record-form">
+                <input type="hidden" id="userId" name="userId"/>
+                <input type="hidden" id="deptIdSnapshot" name="deptIdSnapshot"/>
+                <div class="select-list">
+                    <ul>
+                        <li>
+                            <label>工号：</label>
+                            <input type="text" id="loginName" name="loginName"/>
+                        </li>
+                        <li>
+                            <label>姓名：</label>
+                            <input type="text" id="userName" name="userName"/>
+                        </li>
+                        <li>
+                            <label>部门：</label>
+                            <div class="input-group" style="width: 220px;">
+                                <input type="text" id="deptNameSnapshot" class="form-control" placeholder="请选择部门" readonly onclick="selectDeptTree()">
+                                <span class="input-group-addon" onclick="selectDeptTree()"><i class="fa fa-search"></i></span>
+                            </div>
+                        </li>
+                        <li>
+                            <label>设备区域：</label>
+                            <input type="text" name="deviceArea"/>
+                        </li>
+                        <li>
+                            <label>设备名称：</label>
+                            <input type="text" name="deviceName"/>
+                        </li>
+                        <li>
+                            <label>打卡类型：</label>
+                            <select name="punchType" id="punchType">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${punchTypeList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>数据来源：</label>
+                            <select name="sourceType" id="sourceType">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${sourceTypeList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>记录状态：</label>
+                            <select name="recordStatus" id="recordStatus">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${recordStatusList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li class="select-time">
+                            <label>打卡时间：</label>
+                            <input type="text" class="time-input" id="beginTime" placeholder="开始时间" name="params[beginTime]"/>
+                            <span>-</span>
+                            <input type="text" class="time-input" id="endTime" placeholder="结束时间" name="params[endTime]"/>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('record-form')">
+                                <i class="fa fa-search"></i>&nbsp;搜索
+                            </a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
+                                <i class="fa fa-refresh"></i>&nbsp;重置
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-sm-12">
+            <div class="record-action-bar" role="group">
+                <a class="btn btn-success" href="javascript:void(0)" onclick="syncDevice()" shiro:hasPermission="hr:attendanceRecord:sync">
+                    <i class="fa fa-exchange"></i> 同步考勤机
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="openSyncLog()" shiro:hasPermission="hr:attendanceSync:view">
+                    <i class="fa fa-list-alt"></i> 同步日志
+                </a>
+                <a class="btn btn-warning" href="javascript:void(0)" onclick="$.table.exportExcel()" shiro:hasPermission="hr:attendanceRecord:export">
+                    <i class="fa fa-download"></i> 导出
+                </a>
+            </div>
+        </div>
+
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<script th:inline="javascript">
+    var prefix = ctx + "hr/attendanceRecord";
+    var sourceTypeDatas = [[${@dict.getType('hr_attendance_source')}]];
+    var punchTypeDatas = [[${@dict.getType('hr_punch_type')}]];
+    var recordStatusDatas = [[${@dict.getType('hr_record_status')}]];
+
+    $(function () {
+        initFromQuery();
+        initDefaultRange();
+        var options = {
+            url: prefix + "/list",
+            exportUrl: prefix + "/export",
+            modalName: "考勤打卡记录",
+            formId: "record-form",
+            sortName: "punchTime",
+            sortOrder: "desc",
+            columns: [
+                {field: "recordId", title: "记录ID", visible: false, switchable: false},
+                {field: "userId", title: "员工ID", visible: false, switchable: false},
+                {field: "punchTime", title: "打卡时间", class: "record-col-time", sortable: true, formatter: formatDateTimeValue},
+                {field: "loginName", title: "工号", class: "record-col-main"},
+                {field: "userName", title: "姓名", class: "record-col-main"},
+                {field: "deptNameSnapshot", title: "部门"},
+                {field: "deviceUserNo", title: "设备工号", visible: false},
+                {field: "punchType", title: "打卡类型", formatter: formatPunchType},
+                {field: "sourceType", title: "数据来源", formatter: formatSourceType},
+                {field: "deviceArea", title: "设备区域"},
+                {field: "deviceName", title: "设备名称"},
+                {field: "deviceNo", title: "设备编号", visible: false},
+                {field: "syncBatchNo", title: "同步批次号", visible: false},
+                {field: "syncTime", title: "同步时间", visible: false, formatter: formatDateTimeValue},
+                {field: "recordStatus", title: "记录状态", formatter: formatRecordStatus},
+                {field: "invalidReason", title: "作废原因", visible: false}
+            ]
+        };
+        $.table.init(options);
+        $.table.search("record-form");
+    });
+
+    function initFromQuery() {
+        var params = new URLSearchParams(window.location.search || "");
+        setValue("#userId", params.get("userId"));
+        setValue("#loginName", params.get("loginName"));
+        setValue("#userName", params.get("userName"));
+        setValue("#deptIdSnapshot", params.get("deptId"));
+        setValue("#deptNameSnapshot", params.get("deptName"));
+        setValue("#beginTime", params.get("beginTime"));
+        setValue("#endTime", params.get("endTime"));
+        setValue("#punchType", params.get("punchType"));
+        setValue("#sourceType", params.get("sourceType"));
+        setValue("#recordStatus", params.get("recordStatus"));
+    }
+
+    function initDefaultRange() {
+        if (!$.common.isEmpty($("#beginTime").val()) || !$.common.isEmpty($("#endTime").val())) {
+            return;
+        }
+        var today = formatCurrentDate();
+        $("#beginTime").val(today + " 00:00:00");
+        $("#endTime").val(today + " 23:59:59");
+        $("#sourceType").val("DEMO");
+    }
+
+    function formatCurrentDate() {
+        var now = new Date();
+        return now.getFullYear() + "-" + padValue(now.getMonth() + 1) + "-" + padValue(now.getDate());
+    }
+
+    function setValue(selector, value) {
+        if (!$.common.isEmpty(value)) {
+            $(selector).val(value);
+        }
+    }
+
+    function padValue(value) {
+        value = parseInt(value, 10);
+        return value < 10 ? "0" + value : String(value);
+    }
+
+    function formatSourceType(value) {
+        return $.common.isEmpty(value) ? "" : $.table.selectDictLabel(sourceTypeDatas, value);
+    }
+
+    function formatPunchType(value) {
+        return $.common.isEmpty(value) ? "" : $.table.selectDictLabel(punchTypeDatas, value);
+    }
+
+    function formatRecordStatus(value) {
+        return $.common.isEmpty(value) ? "" : $.table.selectDictLabel(recordStatusDatas, value);
+    }
+
+    function formatDateTimeValue(value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        return String(value).replace("T", " ").replace(".0", "");
+    }
+
+    function resetQuery() {
+        $("#record-form")[0].reset();
+        $("#deptIdSnapshot").val("");
+        $("#deptNameSnapshot").val("");
+        initDefaultRange();
+        $.table.search("record-form");
+    }
+
+    function selectDeptTree() {
+        var deptId = $.common.isEmpty($("#deptIdSnapshot").val()) ? 0 : $("#deptIdSnapshot").val();
+        $.modal.openOptions({
+            title: "选择部门",
+            width: "380",
+            url: ctx + "hr/schedule/selectDeptTree/" + deptId,
+            callBack: doDeptSubmit
+        });
+    }
+
+    function doDeptSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#deptIdSnapshot").val(body.find("#treeId").val());
+        $("#deptNameSnapshot").val(body.find("#treeName").val());
+        $.modal.close(index);
+    }
+
+    function syncDevice() {
+        $.operate.post(prefix + "/syncDevice");
+    }
+
+    function openSyncLog() {
+        $.modal.openTab("同步日志", prefix + "/syncLog");
+    }
+</script>
+</body>
+</html>

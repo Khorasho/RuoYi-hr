@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.hr.HrEmployeeSettingMapper">
+    <resultMap type="HrEmployeeSetting" id="HrEmployeeSettingResult">
+        <id property="userId" column="user_id"/>
+        <result property="loginName" column="login_name"/>
+        <result property="userName" column="user_name"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="postId" column="post_id"/>
+        <result property="postName" column="post_name"/>
+        <result property="phonenumber" column="phonenumber"/>
+        <result property="userStatus" column="user_status"/>
+        <result property="entryDate" column="entry_date"/>
+        <result property="leaveDate" column="leave_date"/>
+        <result property="rotationAnchorDate" column="rotation_anchor_date"/>
+        <result property="defaultShiftId" column="default_shift_id"/>
+        <result property="defaultShiftName" column="default_shift_name"/>
+        <result property="attendanceEnabled" column="attendance_enabled"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectEmployeeSettingVo">
+        select u.user_id,
+               u.login_name,
+               u.user_name,
+               u.dept_id,
+               d.dept_name,
+               pinfo.post_id,
+               pinfo.post_name,
+               u.phonenumber,
+               u.status as user_status,
+               s.entry_date,
+               s.leave_date,
+               s.rotation_anchor_date,
+               s.default_shift_id,
+               sh.shift_name as default_shift_name,
+               ifnull(s.attendance_enabled, '1') as attendance_enabled,
+               s.remark,
+               s.create_by,
+               s.create_time,
+               s.update_by,
+               s.update_time
+        from sys_user u
+        left join sys_dept d on d.dept_id = u.dept_id
+        left join (
+            select up.user_id,
+                   max(up.post_id) as post_id,
+                   group_concat(p.post_name order by p.post_sort separator ',') as post_name
+            from sys_user_post up
+            left join sys_post p on p.post_id = up.post_id
+            group by up.user_id
+        ) pinfo on pinfo.user_id = u.user_id
+        left join hr_employee_setting s on s.user_id = u.user_id
+        left join hr_shift sh on sh.shift_id = s.default_shift_id
+    </sql>
+
+    <select id="selectHrEmployeeSettingList" parameterType="HrEmployeeSetting" resultMap="HrEmployeeSettingResult">
+        <include refid="selectEmployeeSettingVo"/>
+        <where>
+            u.del_flag = '0'
+            <if test="loginName != null and loginName != ''">and u.login_name like concat('%', #{loginName}, '%')</if>
+            <if test="userName != null and userName != ''">and u.user_name like concat('%', #{userName}, '%')</if>
+            <if test="deptId != null">and u.dept_id = #{deptId}</if>
+            <if test="postId != null">and exists (select 1 from sys_user_post up where up.user_id = u.user_id and up.post_id = #{postId})</if>
+            <if test="attendanceEnabled != null and attendanceEnabled != ''">and ifnull(s.attendance_enabled, '1') = #{attendanceEnabled}</if>
+            <if test="params.beginEntryDate != null and params.beginEntryDate != ''">and s.entry_date &gt;= #{params.beginEntryDate}</if>
+            <if test="params.endEntryDate != null and params.endEntryDate != ''">and s.entry_date &lt;= #{params.endEntryDate}</if>
+            <if test="params.configStatus != null and params.configStatus != ''">
+                <choose>
+                    <when test="params.configStatus == 'CONFIGURED'">
+                        and s.user_id is not null
+                        and s.entry_date is not null
+                        and s.default_shift_id is not null
+                    </when>
+                    <when test="params.configStatus == 'UNCONFIGURED'">
+                        and (s.user_id is null or s.entry_date is null or s.default_shift_id is null)
+                    </when>
+                </choose>
+            </if>
+            <if test="params.workStatus != null and params.workStatus != ''">
+                <choose>
+                    <when test="params.workStatus == 'ACTIVE'">
+                        and (s.leave_date is null or s.leave_date &gt;= curdate())
+                    </when>
+                    <when test="params.workStatus == 'LEFT'">
+                        and s.leave_date is not null
+                        and s.leave_date &lt; curdate()
+                    </when>
+                </choose>
+            </if>
+        </where>
+        order by u.dept_id asc, u.login_name asc
+    </select>
+
+    <select id="selectHrEmployeeSettingByUserId" parameterType="Long" resultMap="HrEmployeeSettingResult">
+        <include refid="selectEmployeeSettingVo"/>
+        where u.user_id = #{userId}
+    </select>
+
+    <select id="countHrEmployeeSettingByUserId" parameterType="Long" resultType="int">
+        select count(1) from hr_employee_setting where user_id = #{userId}
+    </select>
+
+    <insert id="insertHrEmployeeSetting" parameterType="HrEmployeeSetting">
+        insert into hr_employee_setting(
+            user_id, entry_date, leave_date, default_shift_id, attendance_enabled,
+            rotation_anchor_date, remark, create_by, create_time
+        )
+        values(
+            #{userId}, #{entryDate}, #{leaveDate}, #{defaultShiftId}, #{attendanceEnabled},
+            #{rotationAnchorDate}, #{remark}, #{createBy}, sysdate()
+        )
+    </insert>
+
+    <update id="updateHrEmployeeSetting" parameterType="HrEmployeeSetting">
+        update hr_employee_setting
+        <set>
+            entry_date = #{entryDate},
+            leave_date = #{leaveDate},
+            rotation_anchor_date = #{rotationAnchorDate},
+            default_shift_id = #{defaultShiftId},
+            attendance_enabled = #{attendanceEnabled},
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </set>
+        where user_id = #{userId}
+    </update>
+</mapper>

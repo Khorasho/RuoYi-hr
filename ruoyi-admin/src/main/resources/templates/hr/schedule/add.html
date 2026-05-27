@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" th:with="restTypeList=${@dict.getType('hr_rest_type')}">
 <head>
     <th:block th:include="include :: header('新增排班')"/>
     <th:block th:include="include :: datetimepicker-css"/>
@@ -17,7 +17,7 @@
                     <label class="col-sm-4 control-label is-required">员工：</label>
                     <div class="col-sm-8">
                         <div class="input-group">
-                            <input type="text" id="userNameDisplay" class="form-control" placeholder="请选择员工"
+                            <input type="text" id="userDisplay" class="form-control" placeholder="请选择员工"
                                    onclick="selectUser()" readonly required>
                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
                         </div>
@@ -28,11 +28,7 @@
                 <div class="form-group">
                     <label class="col-sm-4 control-label is-required">部门：</label>
                     <div class="col-sm-8">
-                        <div class="input-group">
-                            <input type="text" id="deptNameDisplay" class="form-control" placeholder="请选择部门"
-                                   onclick="selectDeptTree()" readonly required>
-                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
-                        </div>
+                        <input type="text" id="deptNameDisplay" class="form-control" placeholder="选择员工后自动带出" readonly required>
                     </div>
                 </div>
             </div>
@@ -49,11 +45,12 @@
             </div>
             <div class="col-sm-6">
                 <div class="form-group">
-                    <label class="col-sm-4 control-label">班次：</label>
+                    <label class="col-sm-4 control-label is-required">班次：</label>
                     <div class="col-sm-8">
-                        <select name="shiftId" class="form-control m-b">
+                        <select name="shiftId" class="form-control m-b" required id="shiftId">
                             <option value="">请选择班次</option>
                             <option th:each="shift : ${shifts}" th:value="${shift.shiftId}"
+                                    th:attr="data-rest=${shift.isRestShift}"
                                     th:text="${shift.shiftName + ' (' + shift.shiftCode + ')'}"></option>
                         </select>
                     </div>
@@ -66,10 +63,8 @@
                 <div class="form-group">
                     <label class="col-sm-4 control-label">休息类型：</label>
                     <div class="col-sm-8">
-                        <select name="restType" class="form-control m-b">
-                            <option value="">正常出勤</option>
-                            <option value="REST">休息</option>
-                            <option value="HALF_REST">半天休</option>
+                        <select name="restType" class="form-control m-b" id="restType">
+                            <option th:each="dict : ${restTypeList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
                         </select>
                     </div>
                 </div>
@@ -79,7 +74,7 @@
                     <label class="col-sm-4 control-label">覆盖同日排班：</label>
                     <div class="col-sm-8">
                         <label class="toggle-switch switch-solid">
-                            <input type="checkbox" id="overwrite" checked>
+                            <input type="checkbox" id="overwrite">
                             <span></span>
                         </label>
                     </div>
@@ -124,46 +119,20 @@
             onkeyup: false,
             focusCleanup: true
         });
+
+        $("#shiftId").on("change", function () {
+            syncRestType($(this));
+        });
+        if ($.common.isEmpty($("#restType").val())) {
+            $("#restType").val("WORK");
+        }
     });
 
-    function selectDeptTree() {
-        var deptId = $.common.isEmpty($("#deptId").val()) ? "100" : $("#deptId").val();
-        var options = {
-            title: "选择部门",
-            width: "380",
-            url: prefix + "/selectDeptTree/" + deptId,
-            btn: ['<i class="fa fa-check"></i> 确认', '<i class="fa fa-trash-o"></i> 清除', '<i class="fa fa-close"></i> 关闭'],
-            btn2: function (index) {
-                $("#deptId").val("");
-                $("#deptNameDisplay").val("");
-                $("#userId").val("");
-                $("#userNameDisplay").val("");
-                $.modal.close(index);
-            },
-            callBack: doDeptSubmit
-        };
-        $.modal.openOptions(options);
-    }
-
-    function doDeptSubmit(index) {
-        var body = $.modal.getChildFrame(index);
-        $("#deptId").val(body.find("#treeId").val());
-        $("#deptNameDisplay").val(body.find("#treeName").val());
-        $("#userId").val("");
-        $("#userNameDisplay").val("");
-        $.modal.close(index);
-    }
-
     function selectUser() {
-        var url = prefix + "/selectUser";
-        var deptId = $("#deptId").val();
-        if ($.common.isNotEmpty(deptId)) {
-            url += "?deptId=" + deptId;
-        }
         $.modal.openOptions({
             title: "选择员工",
             width: "1000",
-            url: url,
+            url: prefix + "/selectUser",
             callBack: doUserSubmit
         });
     }
@@ -180,15 +149,20 @@
 
     function fillUserInfo(row) {
         var deptId = row.deptId || "";
-        var deptName = "";
-        if (row.dept) {
-            deptId = deptId || row.dept.deptId || "";
-            deptName = row.dept.deptName || "";
-        }
+        var deptName = row.dept ? (row.dept.deptName || "") : "";
         $("#userId").val(row.userId || "");
-        $("#userNameDisplay").val(row.userName || "");
         $("#deptId").val(deptId);
+        $("#userDisplay").val((row.loginName || "") + " / " + (row.userName || ""));
         $("#deptNameDisplay").val(deptName);
+    }
+
+    function syncRestType($shift) {
+        var isRest = $shift.find("option:selected").data("rest");
+        if (isRest === "1" || isRest === 1) {
+            $("#restType").val("REST");
+        } else if ($("#restType").val() === "REST") {
+            $("#restType").val("WORK");
+        }
     }
 
     function submitHandler() {
@@ -200,8 +174,15 @@
             return;
         }
         if ($.common.isEmpty($("#deptId").val())) {
-            $.modal.alertWarning("请选择部门");
+            $.modal.alertWarning("员工部门不能为空");
             return;
+        }
+        if ($.common.isEmpty($("#shiftId").val())) {
+            $.modal.alertWarning("请选择班次");
+            return;
+        }
+        if ($("#restType").val() === "WORK") {
+            $("#restType").val("");
         }
         var data = $("#form-schedule-add").serializeArray();
         data.push({name: "overwrite", value: $("#overwrite").is(":checked")});

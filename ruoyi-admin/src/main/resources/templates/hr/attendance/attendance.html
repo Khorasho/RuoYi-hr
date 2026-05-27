@@ -1,17 +1,75 @@
 <!DOCTYPE html>
-<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro"
+      th:with="attendanceStatusList=${@dict.getType('hr_attendance_status')},exceptionTypeList=${@dict.getType('hr_exception_type')}">
 <head>
-    <th:block th:include="include :: header('考勤处理')"/>
+    <th:block th:include="include :: header('考勤明细')"/>
+    <style>
+        .attendance-action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 12px;
+        }
+
+        .attendance-action-bar .btn {
+            margin-right: 0;
+        }
+
+        .bootstrap-table .fixed-table-toolbar {
+            display: none;
+        }
+
+        .segment-col {
+            min-width: 72px;
+        }
+
+        .status-col {
+            min-width: 92px;
+        }
+    </style>
 </head>
 <body class="gray-bg">
 <div class="container-div">
     <div class="row">
         <div class="col-sm-12 search-collapse">
             <form id="attendance-form">
+                <input type="hidden" id="deptId" name="deptId"/>
+                <input type="hidden" id="abnormalOnly" name="params[abnormalOnly]"/>
                 <div class="select-list">
                     <ul>
-                        <li>员工ID：<input type="text" name="userId"/></li>
-                        <li>月份：<input type="month" id="month" name="params[month]" class="form-control" style="width: 180px; display: inline-block;"/></li>
+                        <li>
+                            <label>工号：</label>
+                            <input type="text" name="loginName"/>
+                        </li>
+                        <li>
+                            <label>姓名：</label>
+                            <input type="text" name="userName"/>
+                        </li>
+                        <li>
+                            <label>部门：</label>
+                            <div class="input-group" style="width: 220px;">
+                                <input type="text" id="deptName" class="form-control" placeholder="请选择部门" readonly onclick="selectDeptTree()">
+                                <span class="input-group-addon" onclick="selectDeptTree()"><i class="fa fa-search"></i></span>
+                            </div>
+                        </li>
+                        <li>
+                            <label>月份：</label>
+                            <input type="month" id="month" name="params[month]" class="form-control" style="width: 180px; display: inline-block;"/>
+                        </li>
+                        <li>
+                            <label>考勤状态：</label>
+                            <select id="attendanceStatus" name="attendanceStatus">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${attendanceStatusList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>异常类型：</label>
+                            <select id="exceptionType" name="exceptionType">
+                                <option value="">全部</option>
+                                <option th:each="dict : ${exceptionTypeList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
                         <li class="select-time">
                             <label>日期范围：</label>
                             <input type="text" class="time-input" id="beginDate" placeholder="开始日期" name="params[beginDate]"/>
@@ -19,49 +77,67 @@
                             <input type="text" class="time-input" id="endDate" placeholder="结束日期" name="params[endDate]"/>
                         </li>
                         <li>
-                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
-                            <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('attendance-form')">
+                                <i class="fa fa-search"></i>&nbsp;搜索
+                            </a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
+                                <i class="fa fa-refresh"></i>&nbsp;重置
+                            </a>
                         </li>
                     </ul>
                 </div>
             </form>
         </div>
 
-        <div class="btn-group-sm" id="toolbar" role="group">
-            <a class="btn btn-info" href="javascript:void(0)" onclick="recalculateDay()" shiro:hasPermission="hr:attendance:recalc"><i class="fa fa-refresh"></i> 日重算</a>
-            <a class="btn btn-primary" href="javascript:void(0)" onclick="recalculateMonth()" shiro:hasPermission="hr:attendance:recalc"><i class="fa fa-calendar"></i> 月重算</a>
-            <a class="btn btn-success" href="javascript:void(0)" onclick="loadSummary()" shiro:hasPermission="hr:report:view"><i class="fa fa-bar-chart"></i> 月报汇总</a>
-            <a class="btn btn-warning" onclick="$.table.exportExcel()" shiro:hasPermission="hr:attendance:export"><i class="fa fa-download"></i> 导出</a>
-            <a class="btn btn-default" href="javascript:void(0)" onclick="openRule()" shiro:hasPermission="hr:attendance:edit"><i class="fa fa-cog"></i> 规则配置</a>
+        <div class="col-sm-12">
+            <div class="attendance-action-bar">
+                <a class="btn btn-info" href="javascript:void(0)" onclick="generateMonthly()" shiro:hasPermission="hr:attendance:generate">
+                    <i class="fa fa-calendar"></i> 生成月考勤
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="generateDemoPunches()" shiro:hasPermission="hr:attendance:generate">
+                    <i class="fa fa-magic"></i> 演示打卡
+                </a>
+                <a class="btn btn-primary" href="javascript:void(0)" onclick="recalculateMonth()" shiro:hasPermission="hr:attendance:recalc">
+                    <i class="fa fa-refresh"></i> 重算月考勤
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="openPunchRecords()" shiro:hasPermission="hr:attendanceRecord:view">
+                    <i class="fa fa-list"></i> 打卡记录
+                </a>
+                <a class="btn btn-warning" href="javascript:void(0)" onclick="$.table.exportExcel()" shiro:hasPermission="hr:attendance:export">
+                    <i class="fa fa-download"></i> 导出
+                </a>
+                <a class="btn btn-danger" href="javascript:void(0)" onclick="applyQuickFilter('ABNORMAL')">
+                    <i class="fa fa-warning"></i> 仅看异常
+                </a>
+                <a class="btn btn-warning" href="javascript:void(0)" onclick="applyQuickFilter('MISS_CARD')">
+                    <i class="fa fa-credit-card"></i> 仅看缺卡
+                </a>
+                <a class="btn btn-warning" href="javascript:void(0)" onclick="applyQuickFilter('ABSENT')">
+                    <i class="fa fa-user-times"></i> 仅看旷工
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="clearQuickFilter()">
+                    <i class="fa fa-list"></i> 查看全部
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="syncFutureSevenDays()" shiro:hasPermission="hr:attendance:recalc">
+                    <i class="fa fa-clock-o"></i> 同步未来7天
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="openSyncLogs()" shiro:hasPermission="hr:attendanceSync:view">
+                    <i class="fa fa-file-text-o"></i> 同步日志
+                </a>
+                <a class="btn btn-success" href="javascript:void(0)" onclick="openMonthReport()" shiro:hasPermission="hr:report:view">
+                    <i class="fa fa-bar-chart"></i> 月报统计
+                </a>
+                <a class="btn btn-primary" href="javascript:void(0)" onclick="openYearReport()" shiro:hasPermission="hr:report:view">
+                    <i class="fa fa-area-chart"></i> 年度报表
+                </a>
+                <a class="btn btn-default" href="javascript:void(0)" onclick="openRule()" shiro:hasPermission="hr:attendance:edit">
+                    <i class="fa fa-cog"></i> 规则配置
+                </a>
+            </div>
         </div>
 
         <div class="col-sm-12 select-table table-striped">
             <table id="bootstrap-table"></table>
-        </div>
-
-        <div class="col-sm-12" id="summaryPanel" style="display:none; margin-top: 15px;">
-            <div class="panel panel-default">
-                <div class="panel-heading"><strong>部门月汇总</strong></div>
-                <div class="panel-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="deptSummaryTable">
-                            <thead><tr><th>部门</th><th>出勤天数</th><th>迟到</th><th>早退</th><th>缺卡</th><th>旷工</th><th>实出勤分钟</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="panel panel-default">
-                <div class="panel-heading"><strong>个人月汇总</strong></div>
-                <div class="panel-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="userSummaryTable">
-                            <thead><tr><th>姓名</th><th>部门</th><th>出勤天数</th><th>迟到</th><th>早退</th><th>缺卡</th><th>旷工</th><th>实出勤分钟</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -69,79 +145,327 @@
 <th:block th:include="include :: footer"/>
 <script th:inline="javascript">
     var prefix = ctx + "hr/attendance";
+    var attendanceStatusDatas = [[${@dict.getType('hr_attendance_status')}]];
+    var exceptionTypeDatas = [[${@dict.getType('hr_exception_type')}]];
+    var attendanceStatusMap = buildDictMap(attendanceStatusDatas);
+    var exceptionTypeMap = buildDictMap(exceptionTypeDatas);
 
     $(function () {
+        initDefaultMonth();
+        initDefaultDateRange();
+        initTable();
+        $.table.search("attendance-form");
+    });
+
+    function initTable() {
         var options = {
             url: prefix + "/list",
             exportUrl: prefix + "/export",
-            modalName: "考勤",
+            modalName: "考勤明细",
+            formId: "attendance-form",
             sortName: "workDate",
             sortOrder: "desc",
             columns: [
-                {field: 'workDate', title: '日期', sortable: true},
-                {field: 'userId', title: '员工ID'},
-                {field: 'userName', title: '姓名'},
-                {field: 'deptName', title: '部门'},
-                {field: 'shiftName', title: '班次'},
-                {field: 'actualInTime', title: '实上班'},
-                {field: 'actualOutTime', title: '实下班'},
-                {field: 'lateFlag', title: '迟到', formatter: function (v) { return v === '1' ? '是' : '否'; }},
-                {field: 'earlyFlag', title: '早退', formatter: function (v) { return v === '1' ? '是' : '否'; }},
-                {field: 'missCardFlag', title: '缺卡', formatter: function (v) { return v === '1' ? '是' : '否'; }},
-                {field: 'absentFlag', title: '旷工', formatter: function (v) { return v === '1' ? '是' : '否'; }},
-                {field: 'actualMinutes', title: '实出勤分钟'}
+                {field: "resultId", title: "结果ID", visible: false, switchable: false},
+                {field: "workDate", title: "日期", sortable: true, formatter: function (value) { return formatDateValue(value); }},
+                {field: "loginName", title: "工号"},
+                {field: "userName", title: "姓名"},
+                {field: "deptName", title: "部门"},
+                {field: "shiftName", title: "班次"},
+                {field: "segment1InDisplay", title: "上1", class: "segment-col", formatter: function (value) { return formatShortTime(value); }},
+                {field: "segment1OutDisplay", title: "下1", class: "segment-col", formatter: function (value) { return formatShortTime(value); }},
+                {field: "segment1Status", title: "段1结果", class: "status-col", formatter: function (value) { return formatSegmentStatusValue(value); }},
+                {field: "segment2InDisplay", title: "上2", class: "segment-col", formatter: function (value) { return formatShortTime(value); }},
+                {field: "segment2OutDisplay", title: "下2", class: "segment-col", formatter: function (value) { return formatShortTime(value); }},
+                {field: "segment2Status", title: "段2结果", class: "status-col", formatter: function (value) { return formatSegmentStatusValue(value); }},
+                {field: "segment3InDisplay", title: "上3", class: "segment-col", visible: false, formatter: function (value) { return formatShortTime(value); }},
+                {field: "segment3OutDisplay", title: "下3", class: "segment-col", visible: false, formatter: function (value) { return formatShortTime(value); }},
+                {field: "segment3Status", title: "段3结果", class: "status-col", visible: false, formatter: function (value) { return formatSegmentStatusValue(value); }},
+                {field: "punchCount", title: "打卡次数"},
+                {field: "actualMinutes", title: "实出勤分钟"},
+                {field: "attendanceStatus", title: "考勤状态", formatter: function (value) { return formatStatus(value); }},
+                {field: "exceptionType", title: "异常类型", formatter: function (value) { return formatException(value); }},
+                {
+                    title: "操作",
+                    align: "center",
+                    width: 88,
+                    formatter: function (value, row) {
+                        return '<a class="btn btn-success btn-xs" href="javascript:void(0)" onclick="openPunchRecordDetail(' + row.resultId + ')"><i class="fa fa-search"></i>明细</a>';
+                    }
+                }
             ]
         };
         $.table.init(options);
-    });
+    }
 
-    function recalculateDay() {
-        var d = prompt("请输入重算日期(yyyy-MM-dd)");
-        if (!d) return;
-        $.operate.post(prefix + "/recalculateDay", {workDate: d});
+    function buildDictMap(datas) {
+        var map = {};
+        $.each(datas || [], function (index, item) {
+            map[item.dictValue] = item;
+        });
+        return map;
+    }
+
+    function initDefaultMonth() {
+        if (!$.common.isEmpty($("#month").val())) {
+            return;
+        }
+        $("#month").val(getCurrentMonthValue());
+    }
+
+    function initDefaultDateRange() {
+        if (!$.common.isEmpty($("#beginDate").val()) || !$.common.isEmpty($("#endDate").val())) {
+            return;
+        }
+        var today = formatCurrentDate();
+        $("#beginDate").val(today);
+        $("#endDate").val(today);
+    }
+
+    function formatCurrentDate() {
+        var now = new Date();
+        return now.getFullYear() + "-" + padValue(now.getMonth() + 1) + "-" + padValue(now.getDate());
+    }
+
+    function getCurrentMonthValue() {
+        var now = new Date();
+        return now.getFullYear() + "-" + padValue(now.getMonth() + 1);
+    }
+
+    function padValue(value) {
+        value = parseInt(value, 10);
+        return value < 10 ? "0" + value : String(value);
+    }
+
+    function formatDateValue(value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        return String(value).substring(0, 10);
+    }
+
+    function formatShortTime(value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        var text = String(value).replace("T", " ");
+        return text.length >= 16 ? text.substring(11, 16) : text;
+    }
+
+    function renderDictLabel(dictMap, value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        var item = dictMap[value];
+        if (!item) {
+            return value;
+        }
+        var css = $.common.isEmpty(item.listClass) ? "label label-default" : "label label-" + item.listClass;
+        return '<span class="' + css + '">' + item.dictLabel + '</span>';
+    }
+
+    function renderDictLabels(dictMap, value) {
+        if ($.common.isEmpty(value)) {
+            return "-";
+        }
+        var parts = [];
+        $.each(String(value).split(","), function (index, item) {
+            var code = $.trim(item);
+            if ($.common.isEmpty(code)) {
+                return true;
+            }
+            parts.push(renderDictLabel(dictMap, code));
+        });
+        return parts.length ? parts.join(" ") : "-";
+    }
+
+    function formatStatus(value) {
+        return renderDictLabel(attendanceStatusMap, value);
+    }
+
+    function formatException(value) {
+        return renderDictLabels(exceptionTypeMap, value);
+    }
+
+    function formatSegmentStatusValue(value) {
+        return renderDictLabel(attendanceStatusMap, value);
+    }
+
+    function resetQuery() {
+        $("#attendance-form")[0].reset();
+        $("#deptId").val("");
+        $("#deptName").val("");
+        $("#abnormalOnly").val("");
+        initDefaultMonth();
+        initDefaultDateRange();
+        $.table.search("attendance-form");
+    }
+
+    function selectDeptTree() {
+        var deptId = $.common.isEmpty($("#deptId").val()) ? 0 : $("#deptId").val();
+        $.modal.openOptions({
+            title: "选择部门",
+            width: "380",
+            url: ctx + "hr/schedule/selectDeptTree/" + deptId,
+            callBack: doDeptSubmit
+        });
+    }
+
+    function doDeptSubmit(index) {
+        var body = $.modal.getChildFrame(index);
+        $("#deptId").val(body.find("#treeId").val());
+        $("#deptName").val(body.find("#treeName").val());
+        $.modal.close(index);
+    }
+
+    function generateMonthly() {
+        openMonthDialog("生成月考勤", function (month) {
+            $.modal.loading("正在生成月考勤，请稍候...");
+            $.post(prefix + "/generateMonthly", {month: month}, function (result) {
+                $.modal.closeLoading();
+                $.operate.ajaxSuccess(result);
+                if (result.code === 0) {
+                    $("#month").val(month);
+                    $.table.search("attendance-form");
+                }
+            });
+        });
+    }
+
+    function generateDemoPunches() {
+        openMonthDialog("生成演示打卡", function (month) {
+            $.modal.loading("正在生成演示打卡，请稍候...");
+            $.post(prefix + "/generateDemoPunches", {month: month}, function (result) {
+                $.modal.closeLoading();
+                $.operate.ajaxSuccess(result);
+                if (result.code === 0) {
+                    $("#month").val(month);
+                    $.table.search("attendance-form");
+                }
+            });
+        });
     }
 
     function recalculateMonth() {
-        var m = $("#month").val();
-        if (!m) { $.modal.alertWarning("请先选择月份"); return; }
-        $.operate.post(prefix + "/recalculateMonth", {month: m});
-    }
-
-    function loadSummary() {
-        var m = $("#month").val();
-        if (!m) { $.modal.alertWarning("请先选择月份"); return; }
-        $.get(prefix + "/monthSummary", {month: m}, function (res) {
-            if (res.code !== 0) { $.modal.alertError(res.msg || "加载失败"); return; }
-            renderSummary('#deptSummaryTable tbody', res.deptSummary, ['dept_name', 'totaldays', 'latecount', 'earlycount', 'misscardcount', 'absentcount', 'actualminutes']);
-            renderSummary('#userSummaryTable tbody', res.userSummary, ['user_name', 'dept_name', 'totaldays', 'latecount', 'earlycount', 'misscardcount', 'absentcount', 'actualminutes']);
-            $("#summaryPanel").show();
+        openMonthDialog("重算月考勤", function (month) {
+            $.modal.loading("正在重算月考勤，请稍候...");
+            $.post(prefix + "/recalculateMonth", {month: month}, function (result) {
+                $.modal.closeLoading();
+                $.operate.ajaxSuccess(result);
+                if (result.code === 0) {
+                    $("#month").val(month);
+                    $.table.search("attendance-form");
+                }
+            });
         });
     }
 
-    function renderSummary(tbodySelector, rows, fields) {
-        var $tb = $(tbodySelector);
-        $tb.empty();
-        if (!rows || rows.length === 0) {
-            $tb.append('<tr><td colspan="20" class="text-center">暂无数据</td></tr>');
-            return;
+    function openMonthDialog(title, callback) {
+        var currentMonth = $.common.isEmpty($("#month").val()) ? getCurrentMonthValue() : $("#month").val();
+        var content = ''
+            + '<div style="padding: 20px 20px 0 20px;">'
+            + '  <div class="form-group">'
+            + '    <label class="control-label">月份</label>'
+            + '    <input id="dialogMonth" type="month" class="form-control" value="' + currentMonth + '"/>'
+            + '  </div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            area: ["400px", "180px"],
+            title: title,
+            content: content,
+            btn: ["确定", "取消"],
+            yes: function (index) {
+                var month = $("#dialogMonth").val();
+                if ($.common.isEmpty(month)) {
+                    $.modal.alertWarning("请选择月份");
+                    return;
+                }
+                callback(month);
+                layer.close(index);
+            }
+        });
+    }
+
+    function applyQuickFilter(type) {
+        $("#abnormalOnly").val(type === "ABNORMAL" ? "1" : "");
+        $("#attendanceStatus").val("");
+        $("#exceptionType").val("");
+        if (type === "MISS_CARD") {
+            $("#attendanceStatus").val("MISS_CARD");
+            $("#exceptionType").val("MISS_CARD");
+        } else if (type === "ABSENT") {
+            $("#attendanceStatus").val("ABSENT");
+            $("#exceptionType").val("ABSENT");
         }
-        $.each(rows, function (idx, row) {
-            var tr = '<tr>';
-            $.each(fields, function (i, f) { tr += '<td>' + pickValue(row, f) + '</td>'; });
-            tr += '</tr>';
-            $tb.append(tr);
-        });
+        $.table.search("attendance-form");
     }
 
-    function pickValue(row, snakeName) {
-        if (row[snakeName] != null) return row[snakeName];
-        var camel = snakeName.replace(/_([a-z])/g, function (_, c) { return c.toUpperCase(); });
-        if (row[camel] != null) return row[camel];
-        return '';
+    function clearQuickFilter() {
+        $("#abnormalOnly").val("");
+        $("#attendanceStatus").val("");
+        $("#exceptionType").val("");
+        $.table.search("attendance-form");
+    }
+
+    function syncFutureSevenDays() {
+        $.operate.post(prefix + "/syncFutureSevenDays");
+    }
+
+    function openPunchRecords() {
+        $.modal.openTab("打卡记录", ctx + "hr/attendanceRecord");
+    }
+
+    function openSyncLogs() {
+        $.modal.openTab("同步日志", ctx + "hr/attendanceRecord/syncLog");
     }
 
     function openRule() {
         $.modal.openTab("规则配置", ctx + "hr/rule");
+    }
+
+    function openPunchRecordDetail(resultId) {
+        $.modal.openTab("打卡记录", prefix + "/punchRecord/" + resultId);
+    }
+
+    function openMonthReport() {
+        var month = $("#month").val();
+        if ($.common.isEmpty(month)) {
+            $.modal.alertWarning("请先选择月份");
+            return;
+        }
+        var params = new URLSearchParams();
+        params.set("month", month);
+        appendReportFilters(params);
+        $.modal.openTab("月报统计", ctx + "hr/report/month?" + params.toString());
+    }
+
+    function openYearReport() {
+        var month = $("#month").val();
+        var year = !$.common.isEmpty(month) && month.length >= 4 ? month.substring(0, 4) : String(new Date().getFullYear());
+        var params = new URLSearchParams();
+        params.set("year", year);
+        appendReportFilters(params);
+        $.modal.openTab("年度报表", ctx + "hr/report/year?" + params.toString());
+    }
+
+    function appendReportFilters(params) {
+        var deptId = $("#deptId").val();
+        var deptName = $("#deptName").val();
+        var loginName = $("input[name='loginName']").val();
+        var userName = $("input[name='userName']").val();
+        if (!$.common.isEmpty(deptId)) {
+            params.set("deptId", deptId);
+        }
+        if (!$.common.isEmpty(deptName)) {
+            params.set("deptName", deptName);
+        }
+        if (!$.common.isEmpty(loginName)) {
+            params.set("loginName", loginName);
+        }
+        if (!$.common.isEmpty(userName)) {
+            params.set("userName", userName);
+        }
     }
 </script>
 </body>

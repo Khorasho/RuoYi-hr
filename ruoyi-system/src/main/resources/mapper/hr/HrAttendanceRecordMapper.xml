@@ -6,21 +6,137 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="HrAttendanceRecord" id="HrAttendanceRecordResult">
         <id property="recordId" column="record_id"/>
         <result property="userId" column="user_id"/>
+        <result property="loginName" column="login_name"/>
+        <result property="userName" column="user_name"/>
+        <result property="deptIdSnapshot" column="dept_id_snapshot"/>
+        <result property="deptNameSnapshot" column="dept_name_snapshot"/>
         <result property="deviceUserNo" column="device_user_no"/>
         <result property="punchTime" column="punch_time"/>
         <result property="sourceType" column="source_type"/>
+        <result property="deviceName" column="device_name"/>
+        <result property="deviceNo" column="device_no"/>
+        <result property="deviceArea" column="device_area"/>
+        <result property="punchType" column="punch_type"/>
+        <result property="syncBatchNo" column="sync_batch_no"/>
+        <result property="syncTime" column="sync_time"/>
+        <result property="recordStatus" column="record_status"/>
+        <result property="invalidReason" column="invalid_reason"/>
+        <result property="sourceDbKey" column="source_db_key"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <sql id="selectRecordVo">
+        select r.record_id,
+               r.user_id,
+               coalesce(r.login_name, u.login_name) as login_name,
+               coalesce(r.user_name_snapshot, u.user_name) as user_name,
+               coalesce(r.dept_id_snapshot, u.dept_id) as dept_id_snapshot,
+               coalesce(r.dept_name_snapshot, d.dept_name) as dept_name_snapshot,
+               r.device_user_no,
+               r.punch_time,
+               r.source_type,
+               r.device_name,
+               r.device_no,
+               r.device_area,
+               r.punch_type,
+               r.sync_batch_no,
+               r.sync_time,
+               r.record_status,
+               r.invalid_reason,
+               r.source_db_key,
+               r.create_by,
+               r.create_time,
+               r.update_by,
+               r.update_time
+        from hr_attendance_record r
+        left join sys_user u on u.user_id = r.user_id
+        left join sys_dept d on d.dept_id = coalesce(r.dept_id_snapshot, u.dept_id)
+    </sql>
+
     <insert id="insertHrAttendanceRecord" parameterType="HrAttendanceRecord" useGeneratedKeys="true" keyProperty="recordId">
-        insert into hr_attendance_record(user_id, device_user_no, punch_time, source_type, create_by, create_time)
-        values(#{userId}, #{deviceUserNo}, #{punchTime}, #{sourceType}, #{createBy}, sysdate())
+        insert into hr_attendance_record(
+            user_id, login_name, user_name_snapshot, dept_id_snapshot, dept_name_snapshot,
+            device_user_no, punch_time, source_type, device_name, device_no, device_area,
+            punch_type, sync_batch_no, sync_time, record_status, invalid_reason, source_db_key,
+            create_by, create_time
+        )
+        values(
+            #{userId}, #{loginName}, #{userName}, #{deptIdSnapshot}, #{deptNameSnapshot},
+            #{deviceUserNo}, #{punchTime}, #{sourceType}, #{deviceName}, #{deviceNo}, #{deviceArea},
+            #{punchType}, #{syncBatchNo}, #{syncTime}, #{recordStatus}, #{invalidReason}, #{sourceDbKey},
+            #{createBy}, sysdate()
+        )
     </insert>
 
-    <select id="selectByUserAndRange" resultMap="HrAttendanceRecordResult">
-        select * from hr_attendance_record
-        where user_id = #{arg0}
-        and punch_time &gt;= #{arg1}
-        and punch_time &lt;= #{arg2}
-        order by punch_time asc
+    <update id="updateHrAttendanceRecord" parameterType="HrAttendanceRecord">
+        update hr_attendance_record
+        <set>
+            <if test="loginName != null">login_name = #{loginName},</if>
+            <if test="userName != null">user_name_snapshot = #{userName},</if>
+            <if test="deptIdSnapshot != null">dept_id_snapshot = #{deptIdSnapshot},</if>
+            <if test="deptNameSnapshot != null">dept_name_snapshot = #{deptNameSnapshot},</if>
+            <if test="deviceUserNo != null">device_user_no = #{deviceUserNo},</if>
+            <if test="punchTime != null">punch_time = #{punchTime},</if>
+            <if test="sourceType != null">source_type = #{sourceType},</if>
+            <if test="deviceName != null">device_name = #{deviceName},</if>
+            <if test="deviceNo != null">device_no = #{deviceNo},</if>
+            <if test="deviceArea != null">device_area = #{deviceArea},</if>
+            <if test="punchType != null">punch_type = #{punchType},</if>
+            <if test="syncBatchNo != null">sync_batch_no = #{syncBatchNo},</if>
+            <if test="syncTime != null">sync_time = #{syncTime},</if>
+            <if test="recordStatus != null">record_status = #{recordStatus},</if>
+            <if test="invalidReason != null">invalid_reason = #{invalidReason},</if>
+            <if test="sourceDbKey != null">source_db_key = #{sourceDbKey},</if>
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </set>
+        where record_id = #{recordId}
+    </update>
+
+    <select id="selectHrAttendanceRecordById" parameterType="Long" resultMap="HrAttendanceRecordResult">
+        <include refid="selectRecordVo"/>
+        where r.record_id = #{recordId}
     </select>
+
+    <select id="selectHrAttendanceRecordList" parameterType="HrAttendanceRecord" resultMap="HrAttendanceRecordResult">
+        <include refid="selectRecordVo"/>
+        <where>
+            1 = 1
+            <if test="userId != null">and r.user_id = #{userId}</if>
+            <if test="loginName != null and loginName != ''">and coalesce(r.login_name, u.login_name) like concat('%', #{loginName}, '%')</if>
+            <if test="userName != null and userName != ''">and coalesce(r.user_name_snapshot, u.user_name) like concat('%', #{userName}, '%')</if>
+            <if test="deptIdSnapshot != null">and coalesce(r.dept_id_snapshot, u.dept_id) = #{deptIdSnapshot}</if>
+            <if test="deviceArea != null and deviceArea != ''">and r.device_area like concat('%', #{deviceArea}, '%')</if>
+            <if test="deviceName != null and deviceName != ''">and r.device_name like concat('%', #{deviceName}, '%')</if>
+            <if test="sourceType != null and sourceType != ''">and r.source_type = #{sourceType}</if>
+            <if test="punchType != null and punchType != ''">and r.punch_type = #{punchType}</if>
+            <if test="recordStatus != null and recordStatus != ''">and r.record_status = #{recordStatus}</if>
+            <if test="params.beginTime != null and params.beginTime != ''">and r.punch_time &gt;= #{params.beginTime}</if>
+            <if test="params.endTime != null and params.endTime != ''">and r.punch_time &lt;= #{params.endTime}</if>
+        </where>
+        order by r.punch_time desc, r.record_id desc
+    </select>
+
+    <select id="selectByUserAndRange" resultMap="HrAttendanceRecordResult">
+        <include refid="selectRecordVo"/>
+        where r.user_id = #{userId}
+          and r.punch_time &gt;= #{begin}
+          and r.punch_time &lt;= #{end}
+          and (r.record_status is null or r.record_status = '' or r.record_status = 'VALID')
+        order by r.punch_time asc
+    </select>
+
+    <delete id="deleteByRangeAndSource">
+        delete from hr_attendance_record
+        where punch_time &gt;= #{begin}
+          and punch_time &lt;= #{end}
+          and source_type = #{sourceType}
+    </delete>
+
+    <delete id="deleteAllRecords">
+        delete from hr_attendance_record
+    </delete>
 </mapper>

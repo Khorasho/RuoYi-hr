@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('员工离职')"/>
+    <th:block th:include="include :: datetimepicker-css"/>
+</head>
+<body class="white-bg">
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m" id="form-user-leave" th:object="${user}">
+        <input type="hidden" name="userId" th:field="*{userId}"/>
+        <h4 class="form-header h4">员工信息</h4>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">工号：</label>
+            <div class="col-sm-8">
+                <input class="form-control" type="text" th:field="*{loginName}" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">姓名：</label>
+            <div class="col-sm-8">
+                <input class="form-control" type="text" th:field="*{userName}" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">部门：</label>
+            <div class="col-sm-8">
+                <input class="form-control" type="text" th:value="${user.dept == null ? '' : user.dept.deptName}" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">手机号：</label>
+            <div class="col-sm-8">
+                <input class="form-control" type="text" th:field="*{phonenumber}" readonly>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">入职日期：</label>
+            <div class="col-sm-8">
+                <input class="form-control" type="text" th:value="${user.entryDate == null ? '-' : #dates.format(user.entryDate, 'yyyy-MM-dd')}" readonly>
+            </div>
+        </div>
+
+        <h4 class="form-header h4">离职信息</h4>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">离职日期：</label>
+            <div class="col-sm-8">
+                <input id="leaveDate" name="leaveDate" class="form-control" type="text"
+                       th:value="${user.leaveDate == null ? '' : #dates.format(user.leaveDate, 'yyyy-MM-dd')}"
+                       placeholder="yyyy-MM-dd" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">备注：</label>
+            <div class="col-sm-8">
+                <textarea name="remark" maxlength="500" class="form-control" rows="3" placeholder="例如：个人原因办理离职"></textarea>
+            </div>
+        </div>
+    </form>
+</div>
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: datetimepicker-js"/>
+<script type="text/javascript">
+    var prefix = ctx + 'system/user';
+
+    $(function () {
+        if ($.common.isEmpty($('#leaveDate').val())) {
+            $('#leaveDate').val($.common.dateFormat(new Date(), 'yyyy-MM-dd'));
+        }
+        $('#leaveDate').datetimepicker({
+            format: 'yyyy-mm-dd',
+            minView: 'month',
+            autoclose: true
+        });
+        $('#form-user-leave').validate({
+            focusCleanup: true
+        });
+    });
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            $.operate.save(prefix + '/leave', $('#form-user-leave').serialize());
+        }
+    }
+</script>
+</body>
+</html>

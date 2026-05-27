@@ -38,10 +38,9 @@
 <body class="gray-bg">
 <div class="welcome-wrap">
     <div class="hero">
-        <h1 id="greeting">欢迎使用后台管理系统</h1>
+        <h1 id="greeting">欢迎使用 HR 系统</h1>
         <div class="meta">
             <span>当前日期：</span><span id="todayDate">--</span>
-            <span style="margin-left: 20px;">系统版本：</span><span>v[[${version}]]</span>
         </div>
     </div>
 
@@ -57,10 +56,10 @@
             <div class="card">
                 <h3><i class="fa fa-link"></i> 快捷入口</h3>
                 <div class="quick-links">
-                    <a class="btn btn-primary btn-sm" href="javascript:void(0)" onclick="openMenu('/system/user')">组织与员工</a>
-                    <a class="btn btn-success btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/shift')">班次管理</a>
-                    <a class="btn btn-warning btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/schedule')">排班管理</a>
-                    <a class="btn btn-info btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/attendance')">考勤处理</a>
+                    <a class="btn btn-primary btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/employeeSetting', '员工设置')">员工设置</a>
+                    <a class="btn btn-success btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/shift', '班次管理')">班次管理</a>
+                    <a class="btn btn-warning btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/schedule', '排班管理')">排班管理</a>
+                    <a class="btn btn-info btn-sm" href="javascript:void(0)" onclick="openMenu('/hr/attendance', '考勤明细')">考勤明细</a>
                 </div>
             </div>
         </div>
@@ -68,9 +67,9 @@
             <div class="card">
                 <h3><i class="fa fa-bell-o"></i> 今日提示</h3>
                 <ul class="tips-list">
-                    <li>优先检查当日排班是否完整。</li>
-                    <li>建议每天收班后执行一次考勤日重算。</li>
-                    <li>月末前请确认月报导出口径。</li>
+                    <li>建议先检查当日排班是否完整。</li>
+                    <li>收班后可执行一次当日考勤重算。</li>
+                    <li>导出报表前请确认筛选条件与时间范围。</li>
                 </ul>
             </div>
         </div>
@@ -114,16 +113,21 @@
         $('#greeting').text(getGreeting(now.getHours()));
     }
 
-    function openMenu(url) {
-        if (window.parent && window.parent.$ && window.parent.$.modal && window.parent.$.modal.openTab) {
-            var titleMap = {
-                '/system/user': '组织与员工',
-                '/hr/shift': '班次管理',
-                '/hr/schedule': '排班管理',
-                '/hr/attendance': '考勤处理'
-            };
-            window.parent.$.modal.openTab(titleMap[url] || '菜单', url);
-            return;
+    function openMenu(url, title) {
+        var parentWin = window.parent;
+        if (parentWin && parentWin.$) {
+            var $links = parentWin.$('.menuItem').filter(function () {
+                var href = parentWin.$(this).attr('href') || '';
+                return href === url || href.indexOf(url) >= 0;
+            });
+            if ($links.length) {
+                $links.eq(0).trigger('click');
+                return;
+            }
+            if (parentWin.$.modal && parentWin.$.modal.openTab) {
+                parentWin.$.modal.openTab(title || '菜单', url);
+                return;
+            }
         }
         window.location.href = url;
     }

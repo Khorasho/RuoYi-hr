@@ -133,9 +133,10 @@ CREATE TABLE hr_attendance_exception (
 
 CREATE TABLE hr_attendance_rule (
   rule_id               BIGINT      NOT NULL,
-  late_minutes          INT         DEFAULT 0,
-  early_minutes         INT         DEFAULT 0,
+  late_minutes          INT         DEFAULT 10,
+  early_minutes         INT         DEFAULT 10,
   absent_minutes        INT         DEFAULT 120,
+  day_close_minutes     INT         DEFAULT 120,
   multi_punch_strategy  VARCHAR(64) DEFAULT 'EARLIEST_IN_LATEST_OUT',
   create_by             VARCHAR(64) DEFAULT '',
   create_time           DATETIME,
@@ -144,8 +145,8 @@ CREATE TABLE hr_attendance_rule (
   PRIMARY KEY (rule_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='考勤规则';
 
-INSERT INTO hr_attendance_rule(rule_id, late_minutes, early_minutes, absent_minutes, multi_punch_strategy, create_by, create_time)
-VALUES (1, 0, 0, 120, 'EARLIEST_IN_LATEST_OUT', 'admin', sysdate());
+INSERT INTO hr_attendance_rule(rule_id, late_minutes, early_minutes, absent_minutes, day_close_minutes, multi_punch_strategy, create_by, create_time)
+VALUES (1, 10, 10, 120, 120, 'EARLIEST_IN_LATEST_OUT', 'admin', sysdate());
 
 -- 班次模板
 INSERT INTO hr_shift(shift_code, shift_name, post_type, summer_extend_enabled, summer_extend_minutes, expected_start_time, expected_end_time, status, del_flag, create_by, create_time)

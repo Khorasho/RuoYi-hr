@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.validation.constraints.*;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.annotation.Excel.ColumnType;
@@ -86,6 +87,14 @@ public class SysUser extends BaseEntity
 
     /** 密码最后更新时间 */
     private Date pwdUpdateDate;
+
+    /** 入职日期 */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private Date entryDate;
+
+    /** 离职日期 */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private Date leaveDate;
 
     /** 部门对象 */
     @Excels({
@@ -307,6 +316,26 @@ public class SysUser extends BaseEntity
         this.pwdUpdateDate = pwdUpdateDate;
     }
 
+    public Date getEntryDate()
+    {
+        return entryDate;
+    }
+
+    public void setEntryDate(Date entryDate)
+    {
+        this.entryDate = entryDate;
+    }
+
+    public Date getLeaveDate()
+    {
+        return leaveDate;
+    }
+
+    public void setLeaveDate(Date leaveDate)
+    {
+        this.leaveDate = leaveDate;
+    }
+
     public SysDept getDept()
     {
         if (dept == null)
@@ -369,6 +398,8 @@ public class SysUser extends BaseEntity
             .append("delFlag", getDelFlag())
             .append("loginIp", getLoginIp())
             .append("loginDate", getLoginDate())
+            .append("entryDate", getEntryDate())
+            .append("leaveDate", getLeaveDate())
             .append("createBy", getCreateBy())
             .append("createTime", getCreateTime())
             .append("updateBy", getUpdateBy())

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro"
+      th:with="yesNoList=${@dict.getType('hr_yes_no')},configStatusList=${@dict.getType('hr_employee_config_status')},workStatusList=${@dict.getType('hr_employee_work_status')}">
+<head>
+    <th:block th:include="include :: header('员工设置')"/>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="row">
+        <div class="col-sm-12 search-collapse">
+            <form id="employee-setting-form">
+                <input type="hidden" id="deptId" name="deptId"/>
+                <div class="select-list">
+                    <ul>
+                        <li>
+                            <label>工号：</label>
+                            <input type="text" name="loginName"/>
+                        </li>
+                        <li>
+                            <label>姓名：</label>
+                            <input type="text" name="userName"/>
+                        </li>
+                        <li>
+                            <label>部门：</label>
+                            <div class="input-group" style="width: 220px;">
+                                <input type="text" id="deptName" class="form-control" placeholder="请选择部门" readonly onclick="selectDeptTree()">
+                                <span class="input-group-addon" onclick="selectDeptTree()"><i class="fa fa-search"></i></span>
+                            </div>
+                        </li>
+                        <li>
+                            <label>岗位：</label>
+                            <select name="postId">
+                                <option value="">所有</option>
+                                <option th:each="post : ${posts}" th:value="${post.postId}" th:text="${post.postName}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>参与考勤：</label>
+                            <select name="attendanceEnabled">
+                                <option value="">所有</option>
+                                <option th:each="dict : ${yesNoList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>配置状态：</label>
+                            <select name="params[configStatus]">
+                                <option value="">所有</option>
+                                <option th:each="dict : ${configStatusList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li>
+                            <label>在职状态：</label>
+                            <select name="params[workStatus]">
+                                <option value="">所有</option>
+                                <option th:each="dict : ${workStatusList}" th:value="${dict.dictValue}" th:text="${dict.dictLabel}"></option>
+                            </select>
+                        </li>
+                        <li class="select-time">
+                            <label>入职日期：</label>
+                            <input type="text" class="time-input" id="beginEntryDate" placeholder="开始日期" name="params[beginEntryDate]"/>
+                            <span>-</span>
+                            <input type="text" class="time-input" id="endEntryDate" placeholder="结束日期" name="params[endEntryDate]"/>
+                        </li>
+                        <li>
+                            <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('employee-setting-form')">
+                                <i class="fa fa-search"></i>&nbsp;搜索
+                            </a>
+                            <a class="btn btn-warning btn-rounded btn-sm" onclick="resetQuery()">
+                                <i class="fa fa-refresh"></i>&nbsp;重置
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+
+        <div class="btn-group-sm" id="toolbar" role="group">
+            <a class="btn btn-info multiple disabled" onclick="generateMonthlyForSelected()" shiro:hasPermission="hr:schedule:generate">
+                <i class="fa fa-calendar"></i> 生成月排班
+            </a>
+            <a class="btn btn-success multiple disabled" onclick="batchEditSettings()" shiro:hasPermission="hr:employeeSetting:edit">
+                <i class="fa fa-pencil-square-o"></i> 批量设置班次
+            </a>
+            <a class="btn btn-primary single disabled" onclick="$.operate.editTab()" shiro:hasPermission="hr:employeeSetting:edit">
+                <i class="fa fa-edit"></i> 修改
+            </a>
+            <a class="btn btn-warning" onclick="$.table.exportExcel()" shiro:hasPermission="hr:employeeSetting:export">
+                <i class="fa fa-download"></i> 导出
+            </a>
+        </div>
+
+        <div class="col-sm-12 select-table table-striped">
+            <table id="bootstrap-table"></table>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<script th:inline="javascript">
+    var editFlag = [[${@permission.hasPermi('hr:employeeSetting:edit')}]];
+    var prefix = ctx + "hr/employeeSetting";
+    var yesNoDatas = [[${@dict.getType('hr_yes_no')}]];
+    var configStatusDatas = [[${@dict.getType('hr_employee_config_status')}]];
+    var workStatusDatas = [[${@dict.getType('hr_employee_work_status')}]];
+    var shiftOptions = [
+        /*[# th:each="shift : ${shifts}"]*/
+        {id: '[[${shift.shiftId}]]', name: '[[${shift.shiftName}]]'},
+        /*[/]*/
+    ];
+
+    $(function () {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            exportUrl: prefix + "/export",
+            modalName: "员工设置",
+            formId: "employee-setting-form",
+            sortName: "userId",
+            sortOrder: "asc",
+            uniqueId: "userId",
+            columns: [{
+                checkbox: true
+            }, {
+                field: "userId",
+                title: "用户ID",
+                visible: false,
+                switchable: false
+            }, {
+                field: "loginName",
+                title: "工号"
+            }, {
+                field: "userName",
+                title: "姓名"
+            }, {
+                field: "deptName",
+                title: "部门"
+            }, {
+                field: "postName",
+                title: "岗位"
+            }, {
+                field: "phonenumber",
+                title: "手机号"
+            }, {
+                field: "entryDate",
+                title: "入职日期"
+            }, {
+                field: "leaveDate",
+                title: "离职日期"
+            }, {
+                field: "configStatus",
+                title: "配置状态",
+                formatter: function (value, row) {
+                    var status = getConfigStatusValue(row);
+                    return $.table.selectDictLabel(configStatusDatas, status) || "-";
+                }
+            }, {
+                field: "workStatus",
+                title: "在职状态",
+                formatter: function (value, row) {
+                    var status = getWorkStatusValue(row);
+                    return $.table.selectDictLabel(workStatusDatas, status) || "-";
+                }
+            }, {
+                field: "defaultShiftName",
+                title: "默认班次"
+            }, {
+                field: "attendanceEnabled",
+                title: "参与考勤",
+                formatter: function (value) {
+                    return $.common.isEmpty(value) ? "-" : $.table.selectDictLabel(yesNoDatas, value);
+                }
+            }, {
+                field: "remark",
+                title: "备注"
+            }, {
+                title: "操作",
+                align: "center",
+                formatter: function (value, row) {
+                    return "<a class=\"btn btn-success btn-xs " + editFlag + "\" href=\"javascript:void(0)\" onclick=\"$.operate.editTab('" + row.userId + "')\"><i class=\"fa fa-edit\"></i>&#32534;&#36753;</a>";
+                }
+            }]
+        };
+        $.table.init(options);
+    });
+
+    function resetQuery() {
+        $("#employee-setting-form")[0].reset();
+        $("#deptId").val("");
+        $("#deptName").val("");
+        $.table.search("employee-setting-form");
+    }
+
+    function generateMonthlyForSelected() {
+        var rows = $.table.selectColumns("userId");
+        if (rows.length === 0) {
+            $.modal.alertWarning("请先选择员工");
+            return;
+        }
+        var currentMonth = getCurrentMonthValue();
+        var content = '<div style="padding: 20px 20px 0 20px;">'
+            + '<div class="form-group"><label>月份：</label><input id="batchScheduleMonth" type="month" class="form-control" value="' + currentMonth + '"></div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            area: ["420px", "180px"],
+            title: "生成月排班",
+            content: content,
+            btn: ["确定", "取消"],
+            yes: function (index) {
+                var month = $("#batchScheduleMonth").val();
+                if (!/^\d{4}-\d{2}$/.test(month)) {
+                    $.modal.alertWarning("月份格式错误，应为 yyyy-MM");
+                    return;
+                }
+                layer.close(index);
+                $.operate.post(ctx + "hr/schedule/generateMonthlyBatch", {
+                    month: month,
+                    userIds: rows.join(","),
+                    overwrite: true
+                });
+            }
+        });
+    }
+
+    function batchEditSettings() {
+        var rows = $.table.selectColumns("userId");
+        if (rows.length === 0) {
+            $.modal.alertWarning("请先选择员工");
+            return;
+        }
+        if (!shiftOptions || shiftOptions.length === 0 || $.common.isEmpty(shiftOptions[0].id)) {
+            $.modal.alertWarning("当前没有可用班次，请先维护班次");
+            return;
+        }
+        var optionsHtml = "";
+        $.each(shiftOptions, function (idx, item) {
+            optionsHtml += '<option value="' + item.id + '">' + item.name + '</option>';
+        });
+        var yesNoOptionsHtml = buildDictOptions(yesNoDatas, "1");
+        var content = '<div style="padding:20px 20px 0 20px;">'
+            + '<div class="form-group"><label>轮班起算日：</label><input type="date" id="batchRotationAnchorDate" class="form-control" placeholder="留空则按员工入职日期"></div>'
+            + '<div class="form-group"><label>默认班次：</label><select id="batchDefaultShiftId" class="form-control">' + optionsHtml + '</select></div>'
+            + '<div class="form-group"><label>参与考勤：</label><select id="batchAttendanceEnabled" class="form-control">' + yesNoOptionsHtml + '</select></div>'
+            + '<div class="form-group"><label>备注：</label><textarea id="batchRemark" class="form-control" rows="3" placeholder="例如：批量初始化员工设置"></textarea></div>'
+            + '</div>';
+        layer.open({
+            type: 1,
+            area: ["420px", "420px"],
+            title: "批量设置员工班次",
+            content: content,
+            btn: ["确认", "取消"],
+            yes: function (index) {
+                var defaultShiftId = $("#batchDefaultShiftId").val();
+                if ($.common.isEmpty(defaultShiftId)) {
+                    $.modal.alertWarning("请选择默认班次");
+                    return;
+                }
+                layer.close(index);
+                $.operate.post(prefix + "/batchEdit", {
+                    userIds: rows.join(","),
+                    rotationAnchorDate: $("#batchRotationAnchorDate").val(),
+                    defaultShiftId: defaultShiftId,
+                    attendanceEnabled: $("#batchAttendanceEnabled").val(),
+                    remark: $("#batchRemark").val()
+                });
+            }
+        });
+    }
+
+    function buildDictOptions(datas, selectedValue) {
+        var html = "";
+        $.each(datas || [], function (idx, item) {
+            var selected = item.dictValue === selectedValue ? " selected" : "";
+            html += '<option value="' + item.dictValue + '"' + selected + '>' + item.dictLabel + '</option>';
+        });
+        return html;
+    }
+
+    function getConfigStatusValue(row) {
+        var configured = !$.common.isEmpty(row.entryDate) && !$.common.isEmpty(row.defaultShiftId);
+        return configured ? "CONFIGURED" : "UNCONFIGURED";
+    }
+
+    function getWorkStatusValue(row) {
+        if ($.common.isEmpty(row.leaveDate)) {
+            return "ACTIVE";
+        }
+        var leaveDate = String(row.leaveDate).substring(0, 10);
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = (today.getMonth() + 1) < 10 ? ("0" + (today.getMonth() + 1)) : (today.getMonth() + 1);
+        var dd = today.getDate() < 10 ? ("0" + today.getDate()) : today.getDate();
+        var todayStr = yyyy + "-" + mm + "-" + dd;
+        return leaveDate < todayStr ? "LEFT" : "ACTIVE";
+    }
+
+    function getCurrentMonthValue() {
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = (today.getMonth() + 1) < 10 ? ("0" + (today.getMonth() + 1)) : (today.getMonth() + 1);
+        return yyyy + "-" + mm;
+    }
+
+    function selectDeptTree() {
+        var deptId = $.common.isEmpty($("#deptId").val()) ? "100" : $("#deptId").val();
+        var url = ctx + "system/user/selectDeptTree/" + deptId;
+        $.modal.openOptions({
+            title: "选择部门",
+            width: "380",
+            url: url,
+            callBack: doSubmitDept
+        });
+    }
+
+    function doSubmitDept(index, layero) {
+        var body = $.modal.getChildFrame(index);
+        $("#deptId").val(body.find("#treeId").val());
+        $("#deptName").val(body.find("#treeName").val());
+        $.modal.close(index);
+    }
+</script>
+</body>
+</html>

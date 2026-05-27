@@ -8,6 +8,7 @@ public interface IHrShiftService
 {
     List<HrShift> selectHrShiftList(HrShift shift);
     HrShift selectHrShiftById(Long shiftId);
+    HrShift selectRestShift();
     String generateShiftCode(String shiftName, Long excludeShiftId);
     int insertHrShift(HrShift shift, List<HrShiftPeriod> periods);
     int updateHrShift(HrShift shift, List<HrShiftPeriod> periods);

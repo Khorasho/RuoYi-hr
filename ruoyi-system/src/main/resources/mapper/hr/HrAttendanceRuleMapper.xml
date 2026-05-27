@@ -8,18 +8,33 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="lateMinutes" column="late_minutes"/>
         <result property="earlyMinutes" column="early_minutes"/>
         <result property="absentMinutes" column="absent_minutes"/>
+        <result property="dayCloseMinutes" column="day_close_minutes"/>
         <result property="multiPunchStrategy" column="multi_punch_strategy"/>
     </resultMap>
 
     <select id="selectActiveRule" resultMap="HrAttendanceRuleResult">
-        select * from hr_attendance_rule where rule_id = 1
+        select *
+        from hr_attendance_rule
+        where rule_id = 1
     </select>
+
+    <insert id="insertHrAttendanceRule" parameterType="HrAttendanceRule">
+        insert into hr_attendance_rule(
+            rule_id, late_minutes, early_minutes, absent_minutes, day_close_minutes,
+            multi_punch_strategy, create_by, create_time, update_by, update_time
+        )
+        values(
+            #{ruleId}, #{lateMinutes}, #{earlyMinutes}, #{absentMinutes}, #{dayCloseMinutes},
+            #{multiPunchStrategy}, #{createBy}, sysdate(), #{updateBy}, sysdate()
+        )
+    </insert>
 
     <update id="updateHrAttendanceRule" parameterType="HrAttendanceRule">
         update hr_attendance_rule
         set late_minutes = #{lateMinutes},
             early_minutes = #{earlyMinutes},
             absent_minutes = #{absentMinutes},
+            day_close_minutes = #{dayCloseMinutes},
             multi_punch_strategy = #{multiPunchStrategy},
             update_by = #{updateBy},
             update_time = sysdate()
