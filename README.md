@@ -1,111 +1,176 @@
-<p align="center">
-	<img alt="logo" src="https://oscimg.oschina.net/oscnet/up-dd77653d7c9f197dd9d93684f3c8dcfbab6.png">
-</p>
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi v4.8.3</h1>
-<h4 align="center">基于SpringBoot开发的轻量级Java快速开发框架</h4>
-<p align="center">
-	<a href="https://gitee.com/y_project/RuoYi/stargazers"><img src="https://gitee.com/y_project/RuoYi/badge/star.svg?theme=gvp"></a>
-	<a href="https://gitee.com/y_project/RuoYi"><img src="https://img.shields.io/badge/RuoYi-v4.8.3-brightgreen.svg"></a>
-	<a href="https://gitee.com/y_project/RuoYi/blob/master/LICENSE"><img src="https://img.shields.io/github/license/mashape/apistatus.svg"></a>
-</p>
+<h1 align="center">RuoYi-HR</h1>
 
-## 平台简介
+<h4 align="center">基于 RuoYi v4.8.3 二次开发的人力资源考勤管理系统</h4>
 
-一直想做一款后台管理系统，看了很多优秀的开源项目但是发现没有合适的。于是利用空闲休息时间开始自己写了一套后台系统。如此有了若依。她可以用于所有的Web应用程序，如网站管理后台，网站会员中心，CMS，CRM，OA。所有前端后台代码封装过后十分精简易上手，出错概率低。同时支持移动客户端访问。系统会陆续更新一些实用功能。
+## 项目定位
 
-性别男，若依是给女儿取的名字（寓意：你若不离不弃，我必生死相依）
+本项目是一套面向中小团队的人力资源（HR）管理系统，基于开源快速开发框架 RuoYi v4.8.3（Spring Boot 4.x + Shiro + Thymeleaf + MyBatis）二次开发而来。在保留 RuoYi 完整后台管理底座（用户、角色、部门、菜单、字典、日志、定时任务、代码生成等）的基础上，扩展了完整的 **HR 考勤业务模块**，覆盖员工档案、班次定义、月度排班、考勤数据处理与考勤报表的全流程。
 
-若依是一套全部开源的快速开发平台，毫无保留给个人及企业免费使用。
+系统采用经典的单体多模块架构，前端页面开箱即用，无需单独构建前端工程，适合直接部署到企业内网使用。
 
-* 前端基于 [Hplus(H+)](https://gitee.com/hplus_admin/hplus) 后台主题 UI 框架。
-* 前后端分离版本，请移步[RuoYi-Vue](https://gitee.com/y_project/RuoYi-Vue)，微服务版本，请移步[RuoYi-Cloud](https://gitee.com/y_project/RuoYi-Cloud)
-* 阿里云折扣场：[点我进入](http://aly.ruoyi.vip)，腾讯云秒杀场：[点我进入](http://txy.ruoyi.vip)&nbsp;&nbsp;
+## 免费使用说明
 
-## 版本分支
-
-RuoYi 框架提供 Spring Boot 2.x / 3.x / 4.x 多版本分支的并行维护。
-
-| 名称              | 说明                      | 地址                                                |
-| :---------------- | :------------------------ | :-------------------------------------------------- |
-| master 默认分支   | Spring Boot 4.x (JDK 17+) | https://gitee.com/y_project/RuoYi                   |
-| springboot3 分支  | Spring Boot 3.x (JDK 17+) | https://gitee.com/y_project/RuoYi/tree/springboot3  |
-| springboot2 分支  | Spring Boot 2.x (JDK 8+)  | https://gitee.com/y_project/RuoYi/tree/springboot2  |
-
-## 内置功能
-
-1.  用户管理：用户是系统操作者，该功能主要完成系统用户配置。
-2.  部门管理：配置系统组织机构（公司、部门、小组），树结构展现支持数据权限。
-3.  岗位管理：配置系统用户所属担任职务。
-4.  菜单管理：配置系统菜单，操作权限，按钮权限标识等。
-5.  角色管理：角色菜单权限分配、设置角色按机构进行数据范围权限划分。
-6.  字典管理：对系统中经常使用的一些较为固定的数据进行维护。
-7.  参数管理：对系统动态配置常用参数。
-8.  通知公告：系统通知公告信息发布维护。
-9.  操作日志：系统正常操作日志记录和查询；系统异常信息日志记录和查询。
-10. 登录日志：系统登录日志记录查询包含登录异常。
-11. 在线用户：当前系统中活跃用户状态监控。
-12. 定时任务：在线（添加、修改、删除)任务调度包含执行结果日志。
-13. 代码生成：前后端代码的生成（java、html、xml、sql）支持CRUD下载 。
-14. 系统接口：根据业务代码自动生成相关的api接口文档。
-15. 服务监控：监视当前系统CPU、内存、磁盘、堆栈等相关信息。
-16. 缓存监控：对系统的缓存查询，删除、清空等操作。
-17. 在线构建器：拖动表单元素生成相应的HTML代码。
-18. 连接池监视：监视当前系统数据库连接池状态，可进行分析SQL找出系统性能瓶颈。
+本项目基于 MIT 许可证开源，**个人及企业均可免费使用、修改和二次分发**，无需支付任何费用。使用时请遵守下文 [许可证](#许可证) 中的 MIT 条款（保留版权声明与许可声明）。
 
 ## 在线体验
 
-- admin/admin123  
-- 陆陆续续收到一些打赏，为了更好的体验已用于演示服务器升级。谢谢各位小伙伴。
+- 演示地址：http://ruoyi.vip
+- 默认账号：`admin` / `admin123`
 
-演示地址：http://ruoyi.vip  
-文档地址：http://doc.ruoyi.vip
+> 演示地址为上游框架的在线环境，仅用于体验基础后台功能；本项目的 HR 考勤模块请在本地部署后使用。
 
-## 演示图
+## 环境要求
 
-<table>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-42e518aa72a24d228427a1261cb3679f395.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-7f20dd0edba25e5187c5c4dd3ec7d3d9797.png"/></td>
-    </tr>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-2dae3d87f6a8ca05057db059cd9a411d51d.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-ea4d98423471e55fba784694e45d12bd4bb.png"/></td>
-    </tr>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-7f6c6e9f5873efca09bd2870ee8468b8fce.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-c708b65f2c382a03f69fe1efa8d341e6cff.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-9ab586c47dd5c7b92bca0d727962c90e3b8.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-ef954122a2080e02013112db21754b955c6.png"/></td>
-    </tr>	 
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-088edb4d531e122415a1e2342bccb1a9691.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-f886fe19bd820c0efae82f680223cac196c.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-c7a2eb71fa65d6e660294b4bccca613d638.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-e60137fb0787defe613bd83331dc4755a70.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-7c51c1b5758f0a0f92ed3c60469b7526f9f.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-15181aed45bb2461aa97b594cbf2f86ea5f.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-83326ad52ea63f67233d126226738054d98.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-3bd6d31e913b70df00107db51d64ef81df7.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-70a2225836bc82042a6785edf6299e2586a.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-0184d6ab01fdc6667a14327fcaf8b46345d.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-64d8086dc2c02c8f71170290482f7640098.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-5e4daac0bb59612c5038448acbcef235e3a.png"/></td>
-    </tr>
-</table>
+| 依赖 | 版本要求 | 说明 |
+| :--- | :--- | :--- |
+| JDK | 17 及以上 | `pom.xml` 中 `java.version=17` |
+| Maven | 3.6 及以上 | 用于编译打包 |
+| MySQL | 5.7 / 8.0 | 字符集建议 `utf8mb4` |
+| 浏览器 | Chrome / Edge 等现代浏览器 | — |
 
+## 获取项目
 
-## 若依交流群
+将项目克隆到本地任意目录（下文以 `D:\ruoyi\RuoYi-hr` 为例，替换为你自己的路径即可）：
 
-QQ群： [![加入QQ群](https://img.shields.io/badge/已满-1389287-blue.svg)](https://jq.qq.com/?_wv=1027&k=5HBAaYN)  [![加入QQ群](https://img.shields.io/badge/已满-1679294-blue.svg)](https://jq.qq.com/?_wv=1027&k=5cHeRVW)  [![加入QQ群](https://img.shields.io/badge/已满-1529866-blue.svg)](https://jq.qq.com/?_wv=1027&k=53R0L5Z)  [![加入QQ群](https://img.shields.io/badge/已满-1772718-blue.svg)](https://jq.qq.com/?_wv=1027&k=5g75dCU)  [![加入QQ群](https://img.shields.io/badge/已满-1366522-blue.svg)](https://jq.qq.com/?_wv=1027&k=58cPoHA)  [![加入QQ群](https://img.shields.io/badge/已满-1382251-blue.svg)](https://jq.qq.com/?_wv=1027&k=5Ofd4Pb)  [![加入QQ群](https://img.shields.io/badge/已满-1145125-blue.svg)](https://jq.qq.com/?_wv=1027&k=5yugASz)  [![加入QQ群](https://img.shields.io/badge/已满-86752435-blue.svg)](https://jq.qq.com/?_wv=1027&k=5Rf3d2P)  [![加入QQ群](https://img.shields.io/badge/已满-134072510-blue.svg)](https://jq.qq.com/?_wv=1027&k=5ZIjaeP)  [![加入QQ群](https://img.shields.io/badge/已满-210336300-blue.svg)](https://jq.qq.com/?_wv=1027&k=5CJw1jY)  [![加入QQ群](https://img.shields.io/badge/已满-339522636-blue.svg)](https://jq.qq.com/?_wv=1027&k=5omzbKc)  [![加入QQ群](https://img.shields.io/badge/已满-130035985-blue.svg)](https://jq.qq.com/?_wv=1027&k=qPIKBb7s)  [![加入QQ群](https://img.shields.io/badge/已满-143151071-blue.svg)](https://jq.qq.com/?_wv=1027&k=4NsjKbtU)  [![加入QQ群](https://img.shields.io/badge/已满-158781320-blue.svg)](https://jq.qq.com/?_wv=1027&k=VD2pkz2G)  [![加入QQ群](https://img.shields.io/badge/已满-201531282-blue.svg)](https://jq.qq.com/?_wv=1027&k=HlshFwkJ)  [![加入QQ群](https://img.shields.io/badge/已满-101526938-blue.svg)](https://jq.qq.com/?_wv=1027&k=0ARRrO9V)  [![加入QQ群](https://img.shields.io/badge/已满-264355400-blue.svg)](https://jq.qq.com/?_wv=1027&k=up9k3ZXJ)  [![加入QQ群](https://img.shields.io/badge/已满-298522656-blue.svg)](https://jq.qq.com/?_wv=1027&k=540WfdEr)  [![加入QQ群](https://img.shields.io/badge/已满-139845794-blue.svg)](https://jq.qq.com/?_wv=1027&k=ss91fC4t)  [![加入QQ群](https://img.shields.io/badge/已满-185760789-blue.svg)](https://jq.qq.com/?_wv=1027&k=Cqd66IKe) [![加入QQ群](https://img.shields.io/badge/已满-175104288-blue.svg)](https://jq.qq.com/?_wv=1027&k=7FplYUnR) [![加入QQ群](https://img.shields.io/badge/已满-174942938-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=lqMHu_5Fskm7H2S1vNAQTtzAUokVydwc&authKey=ptw0Fpch5pbNocML3CIJKKqZBaq2DI7cusKuzIgfMNiY3t9Pvd9hP%2BA8WYx3yaY1&noverify=0&group_code=174942938) [![加入QQ群](https://img.shields.io/badge/已满-287843737-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=blYlRDmwZXSXI5pVrPPU7ZJ1stFJ6Q2Q&authKey=ForGBWffHVlPt9NE3d7g4DoOIouBh%2BqvAj2lp1CLReHfZAUaK7SRrdwsChKpRJDJ&noverify=0&group_code=287843737) [![加入QQ群](https://img.shields.io/badge/已满-232896766-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=KTVAIhggR3rR3uZWK9A8kR4yYNREQ4jo&authKey=An4DUV9e7uK8I8VgBbp949z0ypQoDrOoqvVg%2FWOr2vuNNDMZUAMPvqHor6TFMIgz&noverify=0&group_code=232896766) [![加入QQ群](https://img.shields.io/badge/已满-180208928-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=XwhV8deuZXt__yteR1clNanVSXzA-ugq&authKey=ezgwKqEZPdP%2FgC9I03OBkJb%2Biii8yvVfwrcQuu0%2FL6ILXcRdHYDBFKCXeoeBT0E6&noverify=0&group_code=180208928) [![加入QQ群](https://img.shields.io/badge/已满-140284548-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=WqsGDxpGkqOPeWGOf3I32f_rXxdhqYNr&authKey=kvdF5df7PO9bzWxmixKhZN6ShsECBiuGUmmzTZBWVr2MVOfJ8%2F4oD0Gws0rbgYfz&noverify=0&group_code=140284548) [![加入QQ群](https://img.shields.io/badge/177203794-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=z9z9jkkkinfAElKZk2FXqlN4XIXlXsMi&authKey=Sm9XMTV%2FFyANBrv9rVpMfMNcX4v1lVah3795O9VclQwU4DNzQcT5BLXTmTBouIkM&noverify=0&group_code=177203794)
+```bash
+git clone <本仓库地址> D:\ruoyi\RuoYi-hr
+cd D:\ruoyi\RuoYi-hr
+```
+
+项目为 Maven 多模块结构：
+
+```
+RuoYi-hr
+├── ruoyi-admin      // 后台服务入口（Web 启动模块，含 HR 业务控制器）
+├── ruoyi-framework  // 框架核心（Shiro 安全、数据源、AOP 等）
+├── ruoyi-system     // 系统模块（用户/角色/菜单等）+ HR 业务逻辑
+├── ruoyi-quartz     // 定时任务模块
+├── ruoyi-generator  // 代码生成模块
+├── ruoyi-common     // 通用工具模块
+└── sql              // 数据库初始化与升级脚本
+```
+
+## 数据库初始化
+
+1. 创建数据库（库名需与配置文件一致，默认为 `hr_db`）：
+
+```sql
+CREATE DATABASE hr_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```
+
+2. 按**以下顺序**依次导入 `sql/` 目录下的脚本：
+
+| 顺序 | 脚本 | 说明 |
+| :--- | :--- | :--- |
+| 1 | `sql/ry_20260319.sql` | RuoYi 基础表结构及初始数据（含 admin 账号） |
+| 2 | `sql/quartz.sql` | 定时任务模块所需表 |
+| 3 | `sql/hr_init.sql` | HR 模块初始化（员工、班次、排班、考勤表 + 菜单权限） |
+| 4 | `sql/hr_v2_schedule_attendance.sql` | 排班与考勤增强 |
+| 5 | `sql/hr_v3_attendance_rule_demo.sql` | 考勤规则及演示数据 |
+| 6 | `sql/hr_v4_attendance_record.sql` | 考勤打卡记录表 |
+| 7 | `sql/hr_v5_shift_segment.sql` | 班次时段拆分 |
+| 8 | `sql/hr_v6_attendance_result_segment.sql` | 考勤结果时段拆分 |
+| 9 | `sql/hr_v7_dict.sql` | HR 相关字典数据 |
+| 10 | `sql/hr_v8_rotation_annual.sql` | 轮班与年度排班支持 |
+| 11 | `sql/hr_v9_text_cleanup.sql` | 文案清理 |
+
+命令行导入示例（在项目根目录执行）：
+
+```bash
+mysql -uroot -p hr_db < sql/ry_20260319.sql
+mysql -uroot -p hr_db < sql/quartz.sql
+mysql -uroot -p hr_db < sql/hr_init.sql
+mysql -uroot -p hr_db < sql/hr_v2_schedule_attendance.sql
+mysql -uroot -p hr_db < sql/hr_v3_attendance_rule_demo.sql
+mysql -uroot -p hr_db < sql/hr_v4_attendance_record.sql
+mysql -uroot -p hr_db < sql/hr_v5_shift_segment.sql
+mysql -uroot -p hr_db < sql/hr_v6_attendance_result_segment.sql
+mysql -uroot -p hr_db < sql/hr_v7_dict.sql
+mysql -uroot -p hr_db < sql/hr_v8_rotation_annual.sql
+mysql -uroot -p hr_db < sql/hr_v9_text_cleanup.sql
+```
+
+## 配置修改
+
+配置文件位于 `ruoyi-admin/src/main/resources/`，按需修改以下两处：
+
+**1. 数据库连接** — `application-druid.yml`
+
+```yaml
+spring:
+    datasource:
+        druid:
+            master:
+                # 修改为你的 MySQL 地址与库名
+                url: jdbc:mysql://localhost:3306/hr_db?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+                username: root        # 修改为你的数据库用户名
+                password: root        # 修改为你的数据库密码
+```
+
+**2. 服务端口与文件上传路径** — `application.yml`
+
+```yaml
+ruoyi:
+  # 文件上传保存路径，Windows 示例：D:/ruoyi/uploadPath，Linux 示例：/home/ruoyi/uploadPath
+  profile: D:/ruoyi/uploadPath
+
+server:
+  # 服务端口，默认 80，可改为 8080 等未占用端口
+  port: 80
+```
+
+> 当前配置中验证码默认关闭（`shiro.user.captchaEnabled: false`），如需开启验证码登录，将其改为 `true` 即可。
+
+## 编译与启动
+
+### 方式一：IDE 中运行（开发调试）
+
+1. 使用 IDEA / Eclipse 导入项目根目录的 `pom.xml`，等待 Maven 下载依赖；
+2. 运行主启动类 `ruoyi-admin/src/main/java/com/ruoyi/RuoYiApplication.java` 的 `main` 方法。
+
+### 方式二：命令行打包运行（生产部署）
+
+在项目根目录执行：
+
+```bash
+# 编译打包（跳过测试）
+mvn clean package -DskipTests
+```
+
+打包产物位于 `ruoyi-admin/target/ruoyi-admin.jar`，启动：
+
+```bash
+java -jar ruoyi-admin/target/ruoyi-admin.jar
+```
+
+### 方式三：使用自带脚本（Windows）
+
+项目根目录提供了 `ry.bat`，可将打包好的 `ruoyi-admin.jar` 放到根目录后，通过菜单式交互完成启动、关闭、重启与状态查看；Linux 环境使用根目录的 `ry.sh`。
+
+## 访问系统
+
+启动成功后，浏览器访问：
+
+- 本机部署：`http://localhost`（端口为 80 时）或 `http://localhost:8080`（按 `server.port` 配置）
+- 默认账号：`admin` / `admin123`
+
+登录后可在左侧菜单看到 **HR管理** 一级菜单，包含：
+
+| 菜单 | 功能说明 |
+| :--- | :--- |
+| 组织员工 | 员工档案维护（工号、岗位类型、入职日期、在职状态、默认班次组等），支持批量导入导出 |
+| 班次管理 | 定义班次（上下班时间、时段拆分、夏季延时、每周上班掩码等） |
+| 排班管理 | 按人员/部门按月排班，支持轮班与年度排班 |
+| 考勤处理 | 考勤打卡记录处理、考勤结果计算与重算、异常记录管理 |
+| 考勤报表 | 按部门/人员维度的考勤统计报表与导出 |
+| 规则配置 | 考勤规则参数配置（迟到、早退、缺勤判定等） |
+
+## 许可证
+
+本项目基于 **MIT License** 发布（详见根目录 `LICENSE` 文件）：
+
+- 任何个人或组织均可**免费**获得本软件副本，并不受限制地使用、复制、修改、合并、出版、分发、再许可及销售软件副本；
+- 唯一条件是在软件的所有副本或主要部分中**保留原始版权声明与许可声明**；
+- 软件按“现状”提供，不附带任何明示或默示的担保，作者或版权持有人不对因软件产生的任何索赔、损害或其他责任负责。
+
+原始版权信息：`Copyright (c) 2018 RuoYi`
